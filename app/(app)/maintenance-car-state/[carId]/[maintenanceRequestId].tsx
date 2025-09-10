@@ -56,7 +56,7 @@ export default function MaintenanceCarStateForm() {
   const [showDatePicker, setShowDatePicker] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [completedFields, setCompletedFields] = useState(0);
-  const [totalFields] = useState(16);
+  const [totalFields, setTotalFields] = useState(0);
   const animatedValue = useState(new Animated.Value(0))[0];
 
   // Check if we're editing existing data
@@ -69,17 +69,39 @@ export default function MaintenanceCarStateForm() {
     }).start();
   }, [carId, maintenanceRequestId]);
 
+  // Calculate total fields count
+  useEffect(() => {
+    let total = 0;
+    formSections.forEach(section => {
+      total += section.fields.length;
+    });
+    // Add additional fields from additionalDetails
+    total += 3; // recentAccidents, customModifications, otherNotes
+    setTotalFields(total);
+  }, [formSections]);
+
   // Calculate completion progress
   useEffect(() => {
-    const filled = Object.keys(formData).filter(key => {
-      const value = formData[key];
-      if (typeof value === 'object' && value !== null) {
-        return Object.values(value).some(v => v !== null && v !== undefined && v !== '');
-      }
-      return value !== null && value !== undefined && value !== '';
-    }).length;
+    let filled = 0;
+    
+    // Count filled fields from sections
+    formSections.forEach(section => {
+      section.fields.forEach(field => {
+        const value = getFieldValue(field.key);
+        if (value !== null && value !== undefined && value !== '') {
+          filled++;
+        }
+      });
+    });
+    
+    // Count additional details fields
+    const additionalDetails = formData.additionalDetails || {};
+    if (additionalDetails.recentAccidents && additionalDetails.recentAccidents.trim()) filled++;
+    if (additionalDetails.customModifications && additionalDetails.customModifications.trim()) filled++;
+    if (additionalDetails.otherNotes && additionalDetails.otherNotes.trim()) filled++;
+    
     setCompletedFields(filled);
-  }, [formData]);
+  }, [formData, formSections]);
 
   const loadExistingData = async () => {
     try {
@@ -309,9 +331,9 @@ export default function MaintenanceCarStateForm() {
         return (
           <View style={styles.inputContainer}>
             {field.icon && (
-              <View style={styles.inputIcon}>
-                <Ionicons name={field.icon as any} size={20} color={hasValue ? Theme.colors.primary : Theme.colors.textSecondary} />
-              </View>
+              <Animated.View style={[styles.inputIcon, hasValue && styles.inputIconFilled]}>
+                <Ionicons name={field.icon as any} size={20} color={hasValue ? Theme.colors.white : Theme.colors.textSecondary} />
+              </Animated.View>
             )}
             <TextInput
               style={[styles.input, field.icon && styles.inputWithIcon, hasValue && styles.inputFilled]}
@@ -327,9 +349,9 @@ export default function MaintenanceCarStateForm() {
         return (
           <View style={styles.inputContainer}>
             {field.icon && (
-              <View style={styles.inputIcon}>
-                <Ionicons name={field.icon as any} size={20} color={hasValue ? Theme.colors.primary : Theme.colors.textSecondary} />
-              </View>
+              <Animated.View style={[styles.inputIcon, hasValue && styles.inputIconFilled]}>
+                <Ionicons name={field.icon as any} size={20} color={hasValue ? Theme.colors.white : Theme.colors.textSecondary} />
+              </Animated.View>
             )}
             <View style={[styles.inputWithUnit, field.icon && { marginLeft: 40 }]}>
               <TextInput
@@ -353,9 +375,9 @@ export default function MaintenanceCarStateForm() {
         return (
           <View style={styles.inputContainer}>
             {field.icon && (
-              <View style={styles.inputIcon}>
-                <Ionicons name={field.icon as any} size={20} color={hasValue ? Theme.colors.primary : Theme.colors.textSecondary} />
-              </View>
+              <Animated.View style={[styles.inputIcon, hasValue && styles.inputIconFilled]}>
+                <Ionicons name={field.icon as any} size={20} color={hasValue ? Theme.colors.white : Theme.colors.textSecondary} />
+              </Animated.View>
             )}
             <TouchableOpacity
               style={[styles.dateInput, field.icon && styles.inputWithIcon, hasValue && styles.inputFilled]}
@@ -421,14 +443,22 @@ export default function MaintenanceCarStateForm() {
             }
           </Text>
           <View style={styles.progressContainer}>
-            <Text style={styles.progressText}>
-              {Math.round((completedFields / totalFields) * 100)}% {language === 'ar' ? 'مكتمل' : language === 'fr' ? 'terminé' : 'complete'}
-            </Text>
-            <ProgressBar 
-              progress={completedFields / totalFields} 
-              color={Theme.colors.accent}
-              style={styles.progressBar}
-            />
+            <View style={styles.progressHeader}>
+              <Text style={styles.progressText}>
+                {Math.round((completedFields / (totalFields || 1)) * 100)}% {language === 'ar' ? 'مكتمل' : language === 'fr' ? 'terminé' : 'complete'}
+              </Text>
+              <Text style={styles.progressCount}>
+                {completedFields}/{totalFields} {language === 'ar' ? 'حقل' : language === 'fr' ? 'champs' : 'fields'}
+              </Text>
+            </View>
+            <View style={styles.progressBarContainer}>
+              <ProgressBar 
+                progress={totalFields > 0 ? completedFields / totalFields : 0} 
+                color={Theme.colors.accent}
+                style={styles.progressBar}
+              />
+              <View style={[styles.progressFill, { width: `${Math.round((completedFields / (totalFields || 1)) * 100)}%` }]} />
+            </View>
           </View>
         </View>
         <View style={styles.headerSpacer} />
@@ -461,13 +491,27 @@ export default function MaintenanceCarStateForm() {
                 </View>
                 <Text style={styles.sectionTitle}>{section.title}</Text>
                 <View style={styles.sectionStatus}>
-                  <Chip 
-                    mode="outlined"
-                    textStyle={styles.chipText}
-                    style={[styles.chip, { borderColor: section.color }]}
-                  >
-                    {section.fields.filter(field => getFieldValue(field.key)).length}/{section.fields.length}
-                  </Chip>
+                  <View style={styles.sectionProgress}>
+                    <Text style={[styles.sectionProgressText, { color: section.color }]}>
+                      {section.fields.filter(field => {
+                        const value = getFieldValue(field.key);
+                        return value !== null && value !== undefined && value !== '';
+                      }).length}/{section.fields.length}
+                    </Text>
+                    <View style={[styles.miniProgressBar, { backgroundColor: section.color + '20' }]}>
+                      <View 
+                        style={[styles.miniProgressFill, 
+                          { 
+                            backgroundColor: section.color,
+                            width: `${(section.fields.filter(field => {
+                              const value = getFieldValue(field.key);
+                              return value !== null && value !== undefined && value !== '';
+                            }).length / section.fields.length) * 100}%`
+                          }
+                        ]}
+                      />
+                    </View>
+                  </View>
                 </View>
               </View>
               
@@ -584,15 +628,39 @@ const styles = StyleSheet.create({
   progressContainer: {
     alignItems: 'center',
   },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '80%',
+    marginBottom: 8,
+  },
   progressText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.95)',
+  },
+  progressCount: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  progressBarContainer: {
+    width: '80%',
+    position: 'relative',
   },
   progressBar: {
-    width: '80%',
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 3,
+  },
+  progressFill: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: 6,
+    backgroundColor: Theme.colors.accent,
+    borderRadius: 3,
+    ...Theme.shadows.sm,
   },
   headerSpacer: {
     width: 40,
@@ -636,12 +704,24 @@ const styles = StyleSheet.create({
   sectionStatus: {
     marginLeft: 8,
   },
-  chip: {
-    height: 28,
+  sectionProgress: {
+    alignItems: 'center',
+    minWidth: 60,
   },
-  chipText: {
+  sectionProgressText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  miniProgressBar: {
+    width: 40,
+    height: 3,
+    borderRadius: 1.5,
+    overflow: 'hidden',
+  },
+  miniProgressFill: {
+    height: '100%',
+    borderRadius: 1.5,
   },
   fieldContainer: {
     marginBottom: 15,
@@ -663,6 +743,16 @@ const styles = StyleSheet.create({
     left: 15,
     top: 15,
     zIndex: 1,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'background-color 0.3s ease',
+  },
+  inputIconFilled: {
+    backgroundColor: Theme.colors.primary,
+    ...Theme.shadows.sm,
   },
   input: {
     borderWidth: 2,

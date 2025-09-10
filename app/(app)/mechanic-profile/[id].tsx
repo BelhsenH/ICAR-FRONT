@@ -32,12 +32,6 @@ export default function MechanicProfileScreen() {
     });
   };
 
-  const handleEmail = (email: string) => {
-    const emailUrl = `mailto:${email}`;
-    Linking.openURL(emailUrl).catch(() => {
-      Alert.alert(t.error || 'Error', 'Unable to open the email app.');
-    });
-  };
 
   useEffect(() => {
     const loadMechanic = async () => {
@@ -136,120 +130,196 @@ export default function MechanicProfileScreen() {
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Contact Information Card */}
+        {/* Professional Information Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="call" size={24} color={Theme.colors.primary} />
-            <Text style={styles.cardTitle}>{t.contactInfo}</Text>
+            <LinearGradient
+              colors={[Theme.colors.primary, Theme.colors.secondary]}
+              style={styles.cardHeaderGradient}
+            >
+              <Ionicons name="business" size={24} color={Theme.colors.white} />
+            </LinearGradient>
+            <Text style={styles.cardTitle}>{t.businessInfo || 'Business Information'}</Text>
           </View>
           
-          <View style={styles.contactItem}>
-            <View style={styles.contactIconContainer}>
-              <Ionicons name="call-outline" size={20} color={Theme.colors.primary} />
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <View style={styles.infoIconContainer}>
+                <Ionicons name="person-circle" size={28} color={Theme.colors.primary} />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>{t.manager || 'Manager'}</Text>
+                <Text style={styles.infoValue}>{mechanic.nomResponsable}</Text>
+              </View>
             </View>
-            <View style={styles.contactTextContainer}>
-              <Text style={styles.contactLabel}>{t.phone}</Text>
-              <Text style={styles.contactValue}>{mechanic.phoneNumber}</Text>
-            </View>
-            <TouchableOpacity 
-              style={styles.actionButton} 
-              onPress={() => handleCall(mechanic.phoneNumber)}
-            >
-              <Ionicons name="call" size={20} color={Theme.colors.white} />
-            </TouchableOpacity>
-          </View>
 
-          <View style={styles.contactItem}>
-            <View style={styles.contactIconContainer}>
-              <Ionicons name="mail-outline" size={20} color={Theme.colors.primary} />
+            <View style={styles.infoItem}>
+              <View style={styles.infoIconContainer}>
+                <Ionicons name="call" size={28} color={Theme.colors.success} />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>{t.phone || 'Phone'}</Text>
+                <Text style={styles.infoValue}>{mechanic.phoneNumber}</Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.primaryActionButton} 
+                onPress={() => handleCall(mechanic.phoneNumber)}
+              >
+                <Ionicons name="call" size={18} color={Theme.colors.white} />
+              </TouchableOpacity>
             </View>
-            <View style={styles.contactTextContainer}>
-              <Text style={styles.contactLabel}>{t.email}</Text>
-              <Text style={styles.contactValue}>{mechanic.email}</Text>
+
+            <View style={styles.infoItem}>
+              <View style={styles.infoIconContainer}>
+                <Ionicons name="time" size={28} color={Theme.colors.info} />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>{t.businessHours || 'Business Hours'}</Text>
+                <Text style={styles.infoSubtext}>{t.contactForHours || 'Contact for current hours'}</Text>
+              </View>
             </View>
-            <TouchableOpacity 
-              style={styles.actionButton} 
-              onPress={() => handleEmail(mechanic.email)}
-            >
-              <Ionicons name="mail" size={20} color={Theme.colors.white} />
-            </TouchableOpacity>
           </View>
         </View>
 
         {/* Location Information Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="location" size={24} color={Theme.colors.primary} />
-            <Text style={styles.cardTitle}>{t.location}</Text>
+            <LinearGradient
+              colors={[Theme.colors.info, '#4FC3F7']}
+              style={styles.cardHeaderGradient}
+            >
+              <Ionicons name="location" size={24} color={Theme.colors.white} />
+            </LinearGradient>
+            <Text style={styles.cardTitle}>{t.location || 'Location'}</Text>
           </View>
           
-          <View style={styles.locationItem}>
-            <View style={styles.contactIconContainer}>
-              <Ionicons name="location-outline" size={20} color={Theme.colors.primary} />
-            </View>
-            <View style={styles.locationTextContainer}>
-              <Text style={styles.contactLabel}>{t.address}</Text>
-              <Text style={styles.contactValue}>{mechanic.adresse || t.addressNotAvailable || 'Address not available'}</Text>
-            </View>
-          </View>
-
-          {mechanic.zoneGeo && (
+          <View style={styles.locationContainer}>
             <View style={styles.locationItem}>
-              <View style={styles.contactIconContainer}>
-                <Ionicons name="map-outline" size={20} color={Theme.colors.primary} />
+              <View style={styles.locationIconWrapper}>
+                <Ionicons name="location-outline" size={24} color={Theme.colors.info} />
               </View>
-              <View style={styles.locationTextContainer}>
-                <Text style={styles.contactLabel}>{t.zone}</Text>
-                <Text style={styles.contactValue}>{mechanic.zoneGeo}</Text>
+              <View style={styles.locationDetails}>
+                <Text style={styles.locationLabel}>{t.address || 'Address'}</Text>
+                <Text style={styles.locationValue}>{mechanic.adresse || t.addressNotAvailable || 'Address not available'}</Text>
               </View>
             </View>
-          )}
+
+            {mechanic.zoneGeo && (
+              <View style={styles.locationItem}>
+                <View style={styles.locationIconWrapper}>
+                  <Ionicons name="map-outline" size={24} color={Theme.colors.info} />
+                </View>
+                <View style={styles.locationDetails}>
+                  <Text style={styles.locationLabel}>{t.zone || 'Zone'}</Text>
+                  <Text style={styles.locationValue}>{mechanic.zoneGeo}</Text>
+                </View>
+              </View>
+            )}
+
+            <TouchableOpacity 
+              style={styles.viewOnMapButton}
+              onPress={() => {
+                const url = `https://maps.google.com/maps?daddr=${mechanic.geolocation.lat},${mechanic.geolocation.lng}`;
+                Linking.openURL(url);
+              }}
+            >
+              <Ionicons name="map" size={20} color={Theme.colors.white} />
+              <Text style={styles.viewOnMapText}>{t.viewOnMap || 'View on Map'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Services Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="construct" size={24} color={Theme.colors.primary} />
-            <Text style={styles.cardTitle}>{t.services}</Text>
+            <LinearGradient
+              colors={[Theme.colors.success, '#66BB6A']}
+              style={styles.cardHeaderGradient}
+            >
+              <Ionicons name="construct" size={24} color={Theme.colors.white} />
+            </LinearGradient>
+            <Text style={styles.cardTitle}>{t.services || 'Services'}</Text>
           </View>
+          
+          <Text style={styles.servicesDescription}>
+            {t.servicesDescription || 'Professional automotive repair services offered:'}
+          </Text>
           
           <View style={styles.servicesGrid}>
             {mechanic.typeService?.map((service, idx) => (
-              <View key={idx} style={styles.serviceTag}>
-                <Ionicons name="checkmark-circle" size={16} color={Theme.colors.success} />
-                <Text style={styles.serviceText}>{service}</Text>
+              <View key={idx} style={styles.serviceCard}>
+                <LinearGradient
+                  colors={[Theme.colors.success + '15', Theme.colors.success + '25']}
+                  style={styles.serviceCardGradient}
+                >
+                  <View style={styles.serviceIconContainer}>
+                    <Ionicons name="checkmark-circle" size={20} color={Theme.colors.success} />
+                  </View>
+                  <Text style={styles.serviceText}>{service}</Text>
+                </LinearGradient>
               </View>
             )) || (
-              <View style={styles.serviceTag}>
-                <Ionicons name="checkmark-circle" size={16} color={Theme.colors.success} />
-                <Text style={styles.serviceText}>General Repair</Text>
+              <View style={styles.serviceCard}>
+                <LinearGradient
+                  colors={[Theme.colors.success + '15', Theme.colors.success + '25']}
+                  style={styles.serviceCardGradient}
+                >
+                  <View style={styles.serviceIconContainer}>
+                    <Ionicons name="checkmark-circle" size={20} color={Theme.colors.success} />
+                  </View>
+                  <Text style={styles.serviceText}>General Repair</Text>
+                </LinearGradient>
               </View>
             )}
           </View>
         </View>
 
-        {/* Quick Actions Card */}
+        {/* Actions Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="flash" size={24} color={Theme.colors.primary} />
-            <Text style={styles.cardTitle}>{t.quickActions}</Text>
+            <LinearGradient
+              colors={[Theme.colors.primary, Theme.colors.secondary]}
+              style={styles.cardHeaderGradient}
+            >
+              <Ionicons name="flash" size={24} color={Theme.colors.white} />
+            </LinearGradient>
+            <Text style={styles.cardTitle}>{t.quickActions || 'Quick Actions'}</Text>
           </View>
           
-          <View style={styles.quickActionsContainer}>
+          <View style={styles.actionsContainer}>
             <TouchableOpacity 
-              style={[styles.quickActionButton, { backgroundColor: Theme.colors.success }]}
+              style={styles.actionCard}
               onPress={() => handleCall(mechanic.phoneNumber)}
             >
-              <Ionicons name="call" size={24} color={Theme.colors.white} />
-              <Text style={styles.quickActionText}>{t.callNow}</Text>
+              <LinearGradient
+                colors={[Theme.colors.success, '#4CAF50']}
+                style={styles.actionCardGradient}
+              >
+                <View style={styles.actionIconContainer}>
+                  <Ionicons name="call" size={32} color={Theme.colors.white} />
+                </View>
+                <Text style={styles.actionTitle}>{t.callNow || 'Call Now'}</Text>
+                <Text style={styles.actionSubtitle}>{t.directContact || 'Direct contact available'}</Text>
+              </LinearGradient>
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[styles.quickActionButton, { backgroundColor: Theme.colors.info }]}
-              onPress={() => handleEmail(mechanic.email)}
+              style={styles.actionCard}
+              onPress={() => {
+                const url = `https://maps.google.com/maps?daddr=${mechanic.geolocation.lat},${mechanic.geolocation.lng}`;
+                Linking.openURL(url);
+              }}
             >
-              <Ionicons name="mail" size={24} color={Theme.colors.white} />
-              <Text style={styles.quickActionText}>{t.sendEmail}</Text>
+              <LinearGradient
+                colors={[Theme.colors.info, '#2196F3']}
+                style={styles.actionCardGradient}
+              >
+                <View style={styles.actionIconContainer}>
+                  <Ionicons name="navigate" size={32} color={Theme.colors.white} />
+                </View>
+                <Text style={styles.actionTitle}>{t.getDirections || 'Get Directions'}</Text>
+                <Text style={styles.actionSubtitle}>{t.openInMaps || 'Navigate with Maps'}</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -349,103 +419,185 @@ const styles = StyleSheet.create({
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    gap: 12,
+    marginBottom: 24,
+    gap: 16,
   },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Theme.colors.text,
-  },
-  contactItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    marginBottom: 12,
-  },
-  contactIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Theme.colors.primary + '20',
+  cardHeaderGradient: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    ...Theme.shadows.md,
   },
-  contactTextContainer: {
+  cardTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: Theme.colors.text,
     flex: 1,
   },
-  contactLabel: {
+  infoGrid: {
+    gap: 20,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: Theme.colors.primary + '40',
+  },
+  infoIconContainer: {
+    marginRight: 16,
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoLabel: {
     fontSize: 14,
     color: Theme.colors.textSecondary,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  contactValue: {
-    fontSize: 16,
-    color: Theme.colors.text,
     fontWeight: '600',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  actionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Theme.colors.primary,
+  infoValue: {
+    fontSize: 18,
+    color: Theme.colors.text,
+    fontWeight: '700',
+  },
+  infoSubtext: {
+    fontSize: 14,
+    color: Theme.colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  primaryActionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Theme.colors.success,
     alignItems: 'center',
     justifyContent: 'center',
     ...Theme.shadows.sm,
   },
+  locationContainer: {
+    gap: 16,
+  },
   locationItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-    marginBottom: 12,
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: '#f0f8ff',
+    borderRadius: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: Theme.colors.info + '60',
   },
-  locationTextContainer: {
+  locationIconWrapper: {
+    marginRight: 16,
+  },
+  locationDetails: {
     flex: 1,
+  },
+  locationLabel: {
+    fontSize: 14,
+    color: Theme.colors.textSecondary,
+    fontWeight: '600',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  locationValue: {
+    fontSize: 16,
+    color: Theme.colors.text,
+    fontWeight: '600',
+    lineHeight: 22,
+  },
+  viewOnMapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Theme.colors.info,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginTop: 8,
+    gap: 8,
+    ...Theme.shadows.sm,
+  },
+  viewOnMapText: {
+    fontSize: 16,
+    color: Theme.colors.white,
+    fontWeight: '600',
+  },
+  servicesDescription: {
+    fontSize: 16,
+    color: Theme.colors.textSecondary,
+    marginBottom: 20,
+    lineHeight: 24,
+    fontStyle: 'italic',
   },
   servicesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 16,
   },
-  serviceTag: {
-    flexDirection: 'row',
+  serviceCard: {
+    minWidth: (width - 80) / 2,
+    marginBottom: 16,
+  },
+  serviceCardGradient: {
+    borderRadius: 16,
+    padding: 16,
     alignItems: 'center',
-    backgroundColor: Theme.colors.success + '15',
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    gap: 8,
+    ...Theme.shadows.sm,
+  },
+  serviceIconContainer: {
     marginBottom: 8,
   },
   serviceText: {
-    fontSize: 14,
+    fontSize: 16,
     color: Theme.colors.success,
-    fontWeight: '600',
+    fontWeight: '700',
+    textAlign: 'center',
   },
-  quickActionsContainer: {
+  actionsContainer: {
     flexDirection: 'row',
     gap: 16,
   },
-  quickActionButton: {
+  actionCard: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-    ...Theme.shadows.sm,
+    borderRadius: 20,
+    overflow: 'hidden',
+    ...Theme.shadows.lg,
   },
-  quickActionText: {
-    fontSize: 16,
+  actionCardGradient: {
+    padding: 24,
+    alignItems: 'center',
+    minHeight: 140,
+    justifyContent: 'center',
+  },
+  actionIconContainer: {
+    marginBottom: 12,
+    padding: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 20,
+  },
+  actionTitle: {
+    fontSize: 18,
     color: Theme.colors.white,
-    fontWeight: '600',
+    fontWeight: '700',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  actionSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   loadingContainer: {
     flex: 1,

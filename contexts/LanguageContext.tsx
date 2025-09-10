@@ -393,8 +393,8 @@ const translations = {
     // Fuel Tracking
     fuelTracking: "Suivi Carburant",
     fuelHistory: "Historique des pleins",
-    addFuelEntry: "Ajouter un plein",
-    noFuelEntries: "Aucun plein enregistré",
+    addFuelEntry: "Ajouter Versement de carburant",
+    noFuelEntries: "Aucun Versement de carburant",
     addFirstFuelEntry: "Commencez par ajouter votre premier plein",
     currentMileage: "Kilométrage actuel",
     statistics: "Statistiques",

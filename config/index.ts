@@ -10,7 +10,7 @@ const isDevelopment = __DEV__;
 const isProduction = !isDevelopment;
 
 const config: Config = {
-  apiUrl: 'http://192.168.43.6:8888' ,
+  apiUrl: 'http://192.168.1.122:8888' ,
   appName: Constants.expoConfig?.name || 'ICAR Mobile App',
   version: Constants.expoConfig?.version || '1.0.0',
 };
@@ -25,7 +25,7 @@ if (isDevelopment) {
     config.apiUrl = 'http://10.0.2.2:8888';
   } else {
     // Use your computer's IP for physical devices/iOS simulator
-    config.apiUrl = 'http://192.168.43.6:8888';
+    config.apiUrl = 'http://192.168.1.122:8888';
   }
 }
 

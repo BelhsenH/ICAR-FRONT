@@ -30,7 +30,7 @@ interface ChatbotButtonProps {
   style?: object;
 }
 
-const CHATBOT_API_URL = 'http://192.168.43.6:8000'; // Backend URL - adjust as needed
+const CHATBOT_API_URL = 'http://192.168.1.122:8000'; // Backend URL - adjust as needed
 
 export const ChatbotButton: React.FC<ChatbotButtonProps> = ({ style }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);

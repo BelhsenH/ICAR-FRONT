@@ -210,6 +210,7 @@ export default function BookServiceScreen() {
   const [selectedService, setSelectedService] = useState<ServiceType | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [paymentMethod] = useState<string>('cash');
+  const [categoryStep, setCategoryStep] = useState(0);
 
   const totalSteps = 3; // Reduced from 4 steps to 3 (removed category selection)
 
@@ -397,52 +398,189 @@ export default function BookServiceScreen() {
         {language === 'ar' ? 'اختر الخدمة والميكانيكي' : language === 'fr' ? 'Choisir le service et le mécanicien' : 'Choose Service & Mechanic'}
       </Text>
       
-      {/* Category Filter */}
+      {/* Category Filter - Card Stepper */}
       <View style={styles.categoryFilterContainer}>
         <Text style={styles.filterLabel}>
           {language === 'ar' ? 'تصفية حسب النوع:' : language === 'fr' ? 'Filtrer par type:' : 'Filter by type:'}
         </Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.categoryFilterList}>
+        
+        <View style={styles.categoryGridContainer}>
+          {/* Enhanced 3x3 Grid Layout */}
+          <View style={styles.categoryGrid}>
+            {/* All categories option - always first */}
             <TouchableOpacity
               style={[
-                styles.categoryFilterChip,
-                selectedCategory === '' && styles.selectedChip,
+                styles.categoryGridCard,
+                selectedCategory === '' && styles.selectedCategoryCard,
               ]}
               onPress={() => {
                 setSelectedCategory('');
                 filterServicesByCategory('');
               }}
             >
-              <Text style={[
-                styles.chipText,
-                selectedCategory === '' && styles.selectedChipText,
-              ]}>
-                {language === 'ar' ? 'الكل' : language === 'fr' ? 'Tous' : 'All'}
-              </Text>
+              <LinearGradient
+                colors={selectedCategory === '' ? [Theme.colors.primary, Theme.colors.secondary] : [Theme.colors.white, Theme.colors.white]}
+                style={styles.categoryCardGradient}
+              >
+                <View style={styles.categoryCardContent}>
+                  <View style={[
+                    styles.categoryIconContainer,
+                    selectedCategory === '' && styles.selectedIconContainer
+                  ]}>
+                    <Ionicons 
+                      name="grid-outline" 
+                      size={24} 
+                      color={selectedCategory === '' ? Theme.colors.white : Theme.colors.primary} 
+                    />
+                  </View>
+                  <Text 
+                    style={[
+                      styles.categoryCardName,
+                      selectedCategory === '' && styles.selectedCategoryText,
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {language === 'ar' ? 'جميع الخدمات' : language === 'fr' ? 'Tous les services' : 'All Services'}
+                  </Text>
+                  <Text 
+                    style={[
+                      styles.categoryCardFrequency,
+                      selectedCategory === '' && styles.selectedCategoryText,
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {language === 'ar' ? 'عرض الكل' : language === 'fr' ? 'Voir tout' : 'View All'}
+                  </Text>
+                </View>
+              </LinearGradient>
             </TouchableOpacity>
-            {serviceCategories.map((category) => (
+
+            {/* Display 8 categories starting from categoryStep (3x3 grid minus the "All" card) */}
+            {serviceCategories.slice(categoryStep, categoryStep + 8).map((category, index) => (
               <TouchableOpacity
                 key={category.id}
                 style={[
-                  styles.categoryFilterChip,
-                  selectedCategory === category.id && styles.selectedChip,
+                  styles.categoryGridCard,
+                  selectedCategory === category.id && styles.selectedCategoryCard,
                 ]}
                 onPress={() => {
-                  setSelectedCategory(category.id);
-                  filterServicesByCategory(category.id);
+                  if (selectedCategory === category.id) {
+                    setSelectedCategory('');
+                    filterServicesByCategory('');
+                  } else {
+                    setSelectedCategory(category.id);
+                    filterServicesByCategory(category.id);
+                  }
                 }}
               >
-                <Text style={[
-                  styles.chipText,
-                  selectedCategory === category.id && styles.selectedChipText,
-                ]}>
-                  {language === 'ar' ? category.nameAr : language === 'fr' ? category.nameFr : category.nameEn}
-                </Text>
+                <LinearGradient
+                  colors={selectedCategory === category.id 
+                    ? [Theme.colors.primary, Theme.colors.secondary] 
+                    : [Theme.colors.white, Theme.colors.white]
+                  }
+                  style={styles.categoryCardGradient}
+                >
+                  <View style={styles.categoryCardContent}>
+                    <View style={[
+                      styles.categoryIconContainer,
+                      selectedCategory === category.id && styles.selectedIconContainer
+                    ]}>
+                      <Ionicons 
+                        name={category.icon as any} 
+                        size={24} 
+                        color={selectedCategory === category.id ? Theme.colors.white : Theme.colors.primary} 
+                      />
+                    </View>
+                    <Text 
+                      style={[
+                        styles.categoryCardName,
+                        selectedCategory === category.id && styles.selectedCategoryText,
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {language === 'ar' 
+                        ? category.nameAr 
+                        : language === 'fr' 
+                        ? category.nameFr 
+                        : category.nameEn
+                      }
+                    </Text>
+                    <Text 
+                      style={[
+                        styles.categoryCardFrequency,
+                        selectedCategory === category.id && styles.selectedCategoryText,
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {language === 'ar' 
+                        ? category.frequencyAr 
+                        : language === 'fr' 
+                        ? category.frequencyFr 
+                        : category.frequency
+                      }
+                    </Text>
+                  </View>
+                </LinearGradient>
               </TouchableOpacity>
             ))}
+
+            {/* Fill empty slots if there are fewer than 8 categories */}
+            {Array.from({ length: Math.max(0, 8 - serviceCategories.slice(categoryStep, categoryStep + 8).length) }, (_, index) => (
+              <View key={`empty-${index}`} style={[styles.categoryGridCard, styles.emptyCard]}>
+                <View style={styles.categoryCardContent}>
+                  <View style={styles.categoryIconContainer}>
+                    <Ionicons 
+                      name="ellipsis-horizontal" 
+                      size={24} 
+                      color={Theme.colors.textLight} 
+                    />
+                  </View>
+                  <Text style={styles.emptyCategoryName}>
+                    {language === 'ar' ? 'فارغ' : language === 'fr' ? 'Vide' : 'Empty'}
+                  </Text>
+                </View>
+              </View>
+            ))}
           </View>
-        </ScrollView>
+          
+          {/* Enhanced Stepper Controls - only show if there are more than 8 categories */}
+          {serviceCategories.length > 8 && (
+            <View style={styles.categoryStepperControls}>
+              <TouchableOpacity
+                style={[styles.categoryStepperButton, categoryStep === 0 && styles.categoryStepperButtonDisabled]}
+                onPress={() => setCategoryStep((prev) => Math.max(prev - 8, 0))}
+                disabled={categoryStep === 0}
+              >
+                <Ionicons name="chevron-back" size={20} color={categoryStep === 0 ? Theme.colors.textLight : Theme.colors.primary} />
+              </TouchableOpacity>
+              
+              <View style={styles.stepperIndicator}>
+                <Text style={styles.categoryStepperLabel}>
+                  {`${Math.floor(categoryStep / 8) + 1} / ${Math.ceil(serviceCategories.length / 8)}`}
+                </Text>
+                <View style={styles.stepperDots}>
+                  {Array.from({ length: Math.ceil(serviceCategories.length / 8) }, (_, index) => (
+                    <View 
+                      key={index}
+                      style={[
+                        styles.stepperDot,
+                        index === Math.floor(categoryStep / 8) && styles.activeStepperDot
+                      ]}
+                    />
+                  ))}
+                </View>
+              </View>
+              
+              <TouchableOpacity
+                style={[styles.categoryStepperButton, categoryStep + 8 >= serviceCategories.length && styles.categoryStepperButtonDisabled]}
+                onPress={() => setCategoryStep((prev) => Math.min(prev + 8, serviceCategories.length - 1))}
+                disabled={categoryStep + 8 >= serviceCategories.length}
+              >
+                <Ionicons name="chevron-forward" size={20} color={categoryStep + 8 >= serviceCategories.length ? Theme.colors.textLight : Theme.colors.primary} />
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </View>
 
       {loading ? (
@@ -1264,6 +1402,147 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Theme.colors.text,
     marginBottom: 10,
+  },
+  categoryGridContainer: {
+    gap: 15,
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  categoryGridCard: {
+    width: (width - 64) / 3, // Exactly 1/3 of available width
+    height: 110, // Fixed height for consistent rows
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 8, // Space between rows
+    ...Theme.shadows.md,
+    elevation: 4,
+  },
+  categoryCardGradient: {
+    flex: 1,
+    borderRadius: 16,
+  },
+  categoryCardContent: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+  },
+  categoryIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Theme.colors.primaryLight + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  selectedIconContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  categoryCardName: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: Theme.colors.text,
+    textAlign: 'center',
+    marginBottom: 2,
+    lineHeight: 12,
+  },
+  categoryCardFrequency: {
+    fontSize: 8,
+    color: Theme.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 9,
+  },
+  selectedCategoryCard: {
+    transform: [{ scale: 1.05 }],
+  },
+  selectedCategoryText: {
+    color: Theme.colors.white,
+  },
+  previewCard: {
+    opacity: 0.7,
+    transform: [{ scale: 0.95 }],
+  },
+  previewCategoryName: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: Theme.colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  previewLabel: {
+    fontSize: 8,
+    color: Theme.colors.primary,
+    textAlign: 'center',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  emptyCard: {
+    opacity: 0.3,
+  },
+  emptyCategoryName: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: Theme.colors.textLight,
+    textAlign: 'center',
+  },
+  categoryStepperControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    backgroundColor: Theme.colors.white,
+    borderRadius: 25,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    ...Theme.shadows.sm,
+  },
+  categoryStepperButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: Theme.colors.background,
+    marginHorizontal: 8,
+    borderWidth: 1,
+    borderColor: Theme.colors.textLight,
+  },
+  categoryStepperButtonDisabled: {
+    backgroundColor: Theme.colors.textLight,
+    borderColor: Theme.colors.textLight,
+  },
+  stepperIndicator: {
+    alignItems: 'center',
+    marginHorizontal: 12,
+  },
+  categoryStepperLabel: {
+    fontSize: 14,
+    color: Theme.colors.textSecondary,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  stepperDots: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  stepperDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Theme.colors.textLight,
+  },
+  activeStepperDot: {
+    backgroundColor: Theme.colors.primary,
+    transform: [{ scale: 1.2 }],
+  },
+  categoryStepContainer: {
+    gap: 15,
+  },
+  categoryStepperContainer: {
+    alignItems: 'center',
   },
   categoryFilterList: {
     flexDirection: 'row',

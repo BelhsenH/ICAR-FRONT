@@ -41,6 +41,7 @@ export default function MechanicDetailsScreen() {
 
   const [mechanic, setMechanic] = useState<MechanicDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [serviceStep, setServiceStep] = useState(0);
 
   const fetchMechanicDetails = useCallback(async () => {
     try {
@@ -169,13 +170,37 @@ export default function MechanicDetailsScreen() {
             </View>
           )}
 
+
           <View style={styles.servicesContainer}>
             <Text style={styles.servicesTitle}>
               {language === 'ar' ? 'الخدمات:' : language === 'fr' ? 'Services:' : 'Services:'}
             </Text>
-            {mechanic.typeService.map((service, index) => (
-              <Text key={index} style={styles.serviceItem}>• {service}</Text>
-            ))}
+            {mechanic.typeService.length > 0 && (
+              <View style={styles.serviceCardStepContainer}>
+                <View style={styles.serviceCard}>
+                  <Text style={styles.serviceCardText}>{mechanic.typeService[serviceStep]}</Text>
+                </View>
+                <View style={styles.stepperControls}>
+                  <TouchableOpacity
+                    style={[styles.stepperButton, serviceStep === 0 && styles.stepperButtonDisabled]}
+                    onPress={() => setServiceStep((prev) => Math.max(prev - 1, 0))}
+                    disabled={serviceStep === 0}
+                  >
+                    <Ionicons name="chevron-back" size={24} color={serviceStep === 0 ? Theme.colors.textLight : Theme.colors.primary} />
+                  </TouchableOpacity>
+                  <Text style={styles.stepperLabel}>
+                    {`${serviceStep + 1} / ${mechanic.typeService.length}`}
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.stepperButton, serviceStep === mechanic.typeService.length - 1 && styles.stepperButtonDisabled]}
+                    onPress={() => setServiceStep((prev) => Math.min(prev + 1, mechanic.typeService.length - 1))}
+                    disabled={serviceStep === mechanic.typeService.length - 1}
+                  >
+                    <Ionicons name="chevron-forward" size={24} color={serviceStep === mechanic.typeService.length - 1 ? Theme.colors.textLight : Theme.colors.primary} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
 
           <View style={styles.contactContainer}>
@@ -282,6 +307,49 @@ const styles = StyleSheet.create({
   },
   servicesContainer: {
     marginBottom: 20,
+  },
+  serviceCardStepContainer: {
+    alignItems: 'center',
+  },
+  serviceCard: {
+    backgroundColor: Theme.colors.background,
+    borderRadius: 12,
+    paddingVertical: 24,
+    paddingHorizontal: 32,
+    marginBottom: 12,
+    minWidth: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Theme.shadows.sm,
+  },
+  serviceCardText: {
+    fontSize: 18,
+    color: Theme.colors.text,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  stepperControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  stepperButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: Theme.colors.white,
+    marginHorizontal: 8,
+    // Removed Theme.shadows.xs as it does not exist
+  },
+  stepperButtonDisabled: {
+    backgroundColor: Theme.colors.textLight,
+  },
+  stepperLabel: {
+    fontSize: 16,
+    color: Theme.colors.textSecondary,
+    fontWeight: '500',
+    minWidth: 40,
+    textAlign: 'center',
   },
   servicesTitle: {
     fontSize: 18,

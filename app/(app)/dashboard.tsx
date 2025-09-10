@@ -320,7 +320,7 @@ export default function ModernDashboard() {
       { name: translations[language].serviceHistory, icon: '🔧', path: '/(app)/service-history' },
       { name: translations[language].findMechanics || 'Find Mechanics', icon: '📍', path: '/(app)/mechanics-map' },
       { name: translations[language].conversations || 'Conversations', icon: '💬', path: '/(app)/conversations' },
-      { name: translations[language].spareParts, icon: '🛠️', path: '/(app)/create-parts-request' },
+     // { name: translations[language].spareParts, icon: '🛠️', path: '/(app)/create-parts-request' },
       { name: translations[language].partsRequests || 'My Parts Requests', icon: '📋', path: '/(app)/parts-requests' },
       { name: translations[language].profile, icon: '👤', path: '/(app)/profile' },
       { name: translations[language].settings, icon: '⚙️', path: '/(app)/settings' },

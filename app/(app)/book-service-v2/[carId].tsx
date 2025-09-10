@@ -208,11 +208,10 @@ export default function BookServiceScreen() {
   const [allServices, setAllServices] = useState<ServiceType[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedService, setSelectedService] = useState<ServiceType | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>('');
   const [paymentMethod] = useState<string>('cash');
   const [categoryStep, setCategoryStep] = useState(0);
 
-  const totalSteps = 3; // Reduced from 4 steps to 3 (removed category selection)
+  const totalSteps = 2; // Reduced from 3 steps to 2 (removed date selection)
 
   // Fetch all services on component mount
   const fetchAllServices = useCallback(async () => {
@@ -252,72 +251,6 @@ export default function BookServiceScreen() {
     filterServicesByCategory(selectedCategory);
   }, [selectedCategory, filterServicesByCategory]);
 
-  const generateCalendarDates = () => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    
-    // Get next month as well for more options
-    const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
-    const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
-    
-    const dates = [];
-    
-    // Current month available dates (from tomorrow onwards)
-    const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    for (let day = today.getDate() + 1; day <= daysInCurrentMonth; day++) {
-      const date = new Date(currentYear, currentMonth, day);
-      dates.push({
-        date: date.toISOString().split('T')[0],
-        day: day,
-        month: currentMonth,
-        year: currentYear,
-        dayName: date.toLocaleDateString(language === 'ar' ? 'ar' : language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'short' }),
-        monthName: date.toLocaleDateString(language === 'ar' ? 'ar' : language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' }),
-        isToday: false,
-        isCurrentMonth: true,
-      });
-    }
-    
-    // Next month dates (first 15 days)
-    for (let day = 1; day <= 15; day++) {
-      const date = new Date(nextYear, nextMonth, day);
-      dates.push({
-        date: date.toISOString().split('T')[0],
-        day: day,
-        month: nextMonth,
-        year: nextYear,
-        dayName: date.toLocaleDateString(language === 'ar' ? 'ar' : language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'short' }),
-        monthName: date.toLocaleDateString(language === 'ar' ? 'ar' : language === 'fr' ? 'fr-FR' : 'en-US', { month: 'short' }),
-        isToday: false,
-        isCurrentMonth: false,
-      });
-    }
-    
-    return dates;
-  };
-
-  const calendarDates = generateCalendarDates();
-  
-  const groupDatesByMonth = () => {
-    const grouped = {};
-    calendarDates.forEach(date => {
-      const monthKey = `${date.year}-${date.month}`;
-      if (!grouped[monthKey]) {
-        grouped[monthKey] = {
-          month: date.month,
-          year: date.year,
-          monthName: date.monthName,
-          dates: []
-        };
-      }
-      grouped[monthKey].dates.push(date);
-    });
-    return Object.values(grouped);
-  };
-  
-  const monthGroups = groupDatesByMonth();
-
   const handleNextStep = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
@@ -331,8 +264,8 @@ export default function BookServiceScreen() {
   };
 
   const handleBookService = async () => {
-    if (!selectedService || !selectedDate) {
-      Alert.alert(t.error || 'Error', 'Please complete all fields');
+    if (!selectedService) {
+      Alert.alert(t.error || 'Error', 'Please select a service');
       return;
     }
 
@@ -341,7 +274,6 @@ export default function BookServiceScreen() {
       
       const requestBody = {
         serviceId: selectedService._id,
-        date: selectedDate,
         time: '09:00', // Default time, could be made configurable
         paymentMethod: paymentMethod as 'cash' | 'card',
         description: `Service booking for ${selectedService.name}`,
@@ -384,8 +316,6 @@ export default function BookServiceScreen() {
       case 1:
         return renderServiceSelection();
       case 2:
-        return renderDateTimeSelection();
-      case 3:
         return renderConfirmation();
       default:
         return null;
@@ -663,138 +593,6 @@ export default function BookServiceScreen() {
     </ScrollView>
   );
 
-  const renderDateTimeSelection = () => (
-    <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
-      <Text style={styles.stepTitle}>
-        {language === 'ar' ? 'اختر التاريخ' : language === 'fr' ? 'Choisir la date' : 'Choose Date'}
-      </Text>
-      
-      {/* Enhanced Calendar Date Selection */}
-      <View style={styles.section}>
-        <View style={styles.sectionTitleContainer}>
-          <Ionicons name="calendar-outline" size={24} color={Theme.colors.primary} />
-          <Text style={styles.sectionTitle}>
-            {language === 'ar' ? 'اختر التاريخ' : language === 'fr' ? 'Choisir la date' : 'Choose Date'}
-          </Text>
-        </View>
-        
-        {selectedDate && (
-          <View style={styles.selectedDateBanner}>
-            <LinearGradient
-              colors={[Theme.colors.primary + '20', Theme.colors.primary + '10']}
-              style={styles.selectedDateGradient}
-            >
-              <Ionicons name="checkmark-circle" size={20} color={Theme.colors.primary} />
-              <Text style={styles.selectedDateText}>
-                {language === 'ar' ? 'تم اختيار:' : language === 'fr' ? 'Date sélectionnée:' : 'Selected:'}
-              </Text>
-              <Text style={styles.selectedDateValue}>
-                {new Date(selectedDate).toLocaleDateString(language === 'ar' ? 'ar' : language === 'fr' ? 'fr-FR' : 'en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </Text>
-            </LinearGradient>
-          </View>
-        )}
-        
-        <ScrollView style={styles.calendarScrollView} showsVerticalScrollIndicator={false}>
-          {monthGroups.map((monthGroup, monthIndex) => (
-            <View key={`${monthGroup.year}-${monthGroup.month}`} style={styles.monthContainer}>
-              <View style={styles.monthHeaderContainer}>
-                <LinearGradient
-                  colors={[Theme.colors.primary + '15', Theme.colors.primary + '05']}
-                  style={styles.monthHeaderGradient}
-                >
-                  <Text style={styles.monthHeader}>
-                    {monthGroup.monthName} {monthGroup.year}
-                  </Text>
-                </LinearGradient>
-              </View>
-              
-              {/* Week days header */}
-              <View style={styles.weekDaysHeader}>
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
-                  <View key={index} style={styles.weekDayContainer}>
-                    <Text style={styles.weekDayText}>
-                      {language === 'ar' 
-                        ? ['أحد', 'إثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت'][index]
-                        : language === 'fr'
-                        ? ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'][index]
-                        : day
-                      }
-                    </Text>
-                  </View>
-                ))}
-              </View>
-              
-              {/* Enhanced Calendar Grid */}
-              <View style={styles.calendarGrid}>
-                {monthGroup.dates.map((dateObj) => {
-                  const dayOfWeek = new Date(dateObj.year, dateObj.month, dateObj.day).getDay();
-                  const isSelected = selectedDate === dateObj.date;
-                  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-                  
-                  return (
-                    <TouchableOpacity
-                      key={dateObj.date}
-                      style={[
-                        styles.calendarDay,
-                        isSelected && styles.selectedCalendarDay,
-                        !dateObj.isCurrentMonth && styles.otherMonthDay,
-                        isWeekend && styles.weekendDay,
-                      ]}
-                      onPress={() => setSelectedDate(dateObj.date)}
-                      activeOpacity={0.7}
-                    >
-                      {isSelected && (
-                        <LinearGradient
-                          colors={[Theme.colors.primary, Theme.colors.secondary]}
-                          style={styles.selectedDayGradient}
-                        >
-                          <View style={styles.selectedDayContent}>
-                            <Text style={[styles.calendarDayText, styles.selectedCalendarDayText]}>
-                              {dateObj.day}
-                            </Text>
-                            <Text style={[styles.calendarDayName, styles.selectedCalendarDayName]}>
-                              {dateObj.dayName}
-                            </Text>
-                          </View>
-                        </LinearGradient>
-                      )}
-                      {!isSelected && (
-                        <>
-                          <Text style={[
-                            styles.calendarDayText,
-                            !dateObj.isCurrentMonth && styles.otherMonthDayText,
-                            isWeekend && styles.weekendDayText,
-                          ]}>
-                            {dateObj.day}
-                          </Text>
-                          <Text style={[
-                            styles.calendarDayName,
-                            !dateObj.isCurrentMonth && styles.otherMonthDayName,
-                            isWeekend && styles.weekendDayName,
-                          ]}>
-                            {dateObj.dayName}
-                          </Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-          ))}
-        </ScrollView>
-      </View>
-
-
-    </ScrollView>
-  );
-
   const renderConfirmation = () => (
     <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>
@@ -823,15 +621,6 @@ export default function BookServiceScreen() {
             </Text>
           </View>
           
-          <View style={styles.confirmationRow}>
-            <Text style={styles.confirmationLabel}>
-              {language === 'ar' ? 'التاريخ:' : language === 'fr' ? 'Date:' : 'Date:'}
-            </Text>
-            <Text style={styles.confirmationValue}>{selectedDate}</Text>
-          </View>
-          
-          
-          
           <View style={[styles.confirmationRow, styles.totalRow]}>
             <Text style={styles.totalLabel}>
               {language === 'ar' ? 'المجموع:' : language === 'fr' ? 'Total:' : 'Total:'}
@@ -848,8 +637,6 @@ export default function BookServiceScreen() {
       case 1:
         return selectedService !== null;
       case 2:
-        return selectedDate !== '';
-      case 3:
         return true;
       default:
         return false;

@@ -5,7 +5,7 @@ const API_BASE_URL = config.apiUrl || 'http://localhost:3004';
 
 interface ServiceRequestData {
   serviceId: string;
-  date: string;
+  date?: string; // Made optional
   time: string;
   paymentMethod: 'cash' | 'card';
   description?: string;

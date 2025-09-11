@@ -11,6 +11,14 @@ interface ServiceRequestData {
   description?: string;
 }
 
+interface ManualServiceRequestData {
+  serviceType: string;
+  description: string;
+  date: string;
+  isManual: boolean;
+  serviceName?: string;
+}
+
 // Helper function to create fetch request with timeout and better error handling
 const createFetchRequest = async (
   url: string, 
@@ -262,6 +270,38 @@ export const serviceAPI = {
       return await response.json();
     } catch (error) {
       console.error('Error fetching service request:', error);
+      throw error;
+    }
+  },
+
+  // Create manual service request
+  async createManualServiceRequest(carId: string, requestData: ManualServiceRequestData) {
+    try {
+      const response = await createFetchRequest(
+        `${API_BASE_URL}/api/maintenance/request/${carId}/manual`,
+        {
+          method: 'POST',
+          body: JSON.stringify(requestData),
+        },
+        15000 // 15 second timeout for POST
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        if (response.status === 400) {
+          throw new Error(errorData.error || 'Invalid request data.');
+        } else if (response.status === 404) {
+          throw new Error('Car not found.');
+        }
+        handleHttpError(response, errorData.error || 'Failed to create manual service request');
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Request timeout. Please check your connection.');
+      }
+      console.error('Error creating manual service request:', error);
       throw error;
     }
   },

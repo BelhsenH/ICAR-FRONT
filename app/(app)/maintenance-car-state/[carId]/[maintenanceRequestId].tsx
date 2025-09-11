@@ -445,10 +445,10 @@ export default function MaintenanceCarStateForm() {
           <View style={styles.progressContainer}>
             <View style={styles.progressHeader}>
               <Text style={styles.progressText}>
-                {Math.round((completedFields / (totalFields || 1)) * 100)}% {language === 'ar' ? 'مكتمل' : language === 'fr' ? 'terminé' : 'complete'}
+                {`${Math.round((completedFields / (totalFields || 1)) * 100)}% ${language === 'ar' ? 'مكتمل' : language === 'fr' ? 'terminé' : 'complete'}`}
               </Text>
               <Text style={styles.progressCount}>
-                {completedFields}/{totalFields} {language === 'ar' ? 'حقل' : language === 'fr' ? 'champs' : 'fields'}
+                {`${completedFields}/${totalFields} ${language === 'ar' ? 'حقل' : language === 'fr' ? 'champs' : 'fields'}`}
               </Text>
             </View>
             <View style={styles.progressBarContainer}>

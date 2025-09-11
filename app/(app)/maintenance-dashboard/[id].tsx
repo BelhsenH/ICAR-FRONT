@@ -6,9 +6,12 @@ import {
   Alert, 
   TouchableOpacity, 
   RefreshControl,
-  ActivityIndicator
+  ActivityIndicator,
+  Modal,
+  TextInput
 } from 'react-native';
-import { Text } from 'react-native-paper';
+import { Text, Button } from 'react-native-paper';
+import { Picker } from '@react-native-picker/picker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,16 +19,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../../../constants/Theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import config from '../../../config';
+import { serviceAPI } from '../../../scripts/service-script';
 
 interface MaintenanceRequest {
   _id: string;
   date: string;
   status: string;
   serviceId: {
+    _id?: string;
+    id?: string;
     name: string;
-    type: string;
-    price: number;
-  };
+    type?: string;
+    price?: number;
+  } | string;
 }
 
 interface MaintenanceCarState {
@@ -68,6 +74,19 @@ interface DashboardData {
   };
 }
 
+interface ServiceType {
+  id: string;
+  name: string;
+  nameAr: string;
+  nameFr: string;
+}
+
+interface ManualServiceRequest {
+  serviceType: string;
+  description: string;
+  date: string;
+}
+
 const Theme = {
   colors: Colors,
   typography: Typography,
@@ -75,6 +94,20 @@ const Theme = {
   borderRadius: BorderRadius,
   shadows: Shadows,
 };
+
+const serviceTypes: ServiceType[] = [
+  { id: 'oil_change', name: 'Oil Change', nameAr: 'تغيير الزيت', nameFr: 'Changement d\'huile' },
+  { id: 'tire_rotation', name: 'Tire Rotation', nameAr: 'دوران الإطارات', nameFr: 'Rotation des pneus' },
+  { id: 'brake_inspection', name: 'Brake Inspection', nameAr: 'فحص الفرامل', nameFr: 'Inspection des freins' },
+  { id: 'engine_tune', name: 'Engine Tune-up', nameAr: 'ضبط المحرك', nameFr: 'Révision moteur' },
+  { id: 'transmission', name: 'Transmission Service', nameAr: 'خدمة ناقل الحركة', nameFr: 'Service de transmission' },
+  { id: 'air_filter', name: 'Air Filter Replacement', nameAr: 'استبدال فلتر الهواء', nameFr: 'Remplacement filtre à air' },
+  { id: 'battery', name: 'Battery Service', nameAr: 'خدمة البطارية', nameFr: 'Service de batterie' },
+  { id: 'cooling_system', name: 'Cooling System', nameAr: 'نظام التبريد', nameFr: 'Système de refroidissement' },
+  { id: 'exhaust', name: 'Exhaust System', nameAr: 'نظام العادم', nameFr: 'Système d\'échappement' },
+  { id: 'general_maintenance', name: 'General Maintenance', nameAr: 'صيانة عامة', nameFr: 'Maintenance générale' },
+  { id: 'other', name: 'Other', nameAr: 'أخرى', nameFr: 'Autre' }
+];
 
 export default function MaintenanceDashboard() {
   const { id: carId } = useLocalSearchParams();
@@ -85,6 +118,15 @@ export default function MaintenanceDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const [showServiceOptions, setShowServiceOptions] = useState(false);
+  const [showManualServiceModal, setShowManualServiceModal] = useState(false);
+  const [manualServiceRequest, setManualServiceRequest] = useState<ManualServiceRequest>({
+    serviceType: '',
+    description: '',
+    date: new Date().toISOString().split('T')[0]
+  });
+  const [creatingManualService, setCreatingManualService] = useState(false);
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -104,7 +146,55 @@ export default function MaintenanceDashboard() {
       const data = await response.json();
       
       if (data.success) {
-        setDashboardData(data.data);
+        // Enhance maintenance history with actual service names
+        const enhancedData = { ...data.data };
+        
+        if (enhancedData.maintenanceHistory && enhancedData.maintenanceHistory.length > 0) {
+          // Fetch all services to get service names
+          setLoadingServices(true);
+          try {
+            const servicesResponse = await serviceAPI.getAllServices();
+            const services = servicesResponse.data || servicesResponse;
+            
+            // Create a map of service IDs to service names
+            const serviceMap = new Map();
+            if (Array.isArray(services)) {
+              services.forEach(service => {
+                serviceMap.set(service._id, service.name);
+              });
+            }
+            
+            // Update maintenance history with actual service names
+            enhancedData.maintenanceHistory = enhancedData.maintenanceHistory.map(state => {
+              if (state.maintenanceRequest?.serviceId) {
+                const serviceId = typeof state.maintenanceRequest.serviceId === 'string' 
+                  ? state.maintenanceRequest.serviceId 
+                  : state.maintenanceRequest.serviceId._id || state.maintenanceRequest.serviceId.id;
+                
+                const serviceName = serviceMap.get(serviceId);
+                if (serviceName) {
+                  return {
+                    ...state,
+                    maintenanceRequest: {
+                      ...state.maintenanceRequest,
+                      serviceId: {
+                        ...state.maintenanceRequest.serviceId,
+                        name: serviceName
+                      }
+                    }
+                  };
+                }
+              }
+              return state;
+            });
+          } catch (servicesError) {
+            console.warn('Failed to fetch services for name mapping:', servicesError);
+          } finally {
+            setLoadingServices(false);
+          }
+        }
+        
+        setDashboardData(enhancedData);
       } else {
         Alert.alert(t.error || 'Error', data.message || 'Failed to fetch maintenance data');
       }
@@ -152,14 +242,107 @@ export default function MaintenanceDashboard() {
     return statusTexts[status] || status;
   };
 
+  const getServiceName = (maintenanceRequest: MaintenanceRequest | undefined) => {
+    if (maintenanceRequest?.serviceId) {
+      if (typeof maintenanceRequest.serviceId === 'string') {
+        return language === 'ar' ? 'خدمة صيانة' : language === 'fr' ? 'Service de maintenance' : 'Maintenance Service';
+      } else {
+        return maintenanceRequest.serviceId.name || 
+          (language === 'ar' ? 'خدمة صيانة' : language === 'fr' ? 'Service de maintenance' : 'Maintenance Service');
+      }
+    }
+    return language === 'ar' ? 'خدمة صيانة' : language === 'fr' ? 'Service de maintenance' : 'Maintenance Service';
+  };
+
+  const getServiceTypeDisplayName = (serviceTypeId: string) => {
+    const serviceType = serviceTypes.find(st => st.id === serviceTypeId);
+    if (!serviceType) return serviceTypeId;
+    
+    if (language === 'ar') return serviceType.nameAr;
+    if (language === 'fr') return serviceType.nameFr;
+    return serviceType.name;
+  };
+
+  const createManualServiceRequest = async () => {
+    if (!manualServiceRequest.serviceType || !manualServiceRequest.description.trim()) {
+      Alert.alert(
+        t.error || 'Error',
+        language === 'ar' 
+          ? 'يرجى ملء جميع الحقول المطلوبة'
+          : language === 'fr'
+          ? 'Veuillez remplir tous les champs requis'
+          : 'Please fill in all required fields'
+      );
+      return;
+    }
+
+    setCreatingManualService(true);
+    try {
+      const requestData = {
+        serviceType: manualServiceRequest.serviceType,
+        description: manualServiceRequest.description,
+        date: manualServiceRequest.date,
+        isManual: true,
+        serviceName: getServiceTypeDisplayName(manualServiceRequest.serviceType)
+      };
+
+      // Use the maintenance service API for creating manual service requests
+      const token = await AsyncStorage.getItem('authToken');
+      const maintenanceServiceUrl = `${config.apiUrl}/api/maintenance`;
+      
+      const response = await fetch(
+        `${maintenanceServiceUrl}/manual-request/${carId}`,
+        {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestData)
+        }
+      );
+
+      const data = await response.json();
+      
+      if (data.success) {
+        Alert.alert(
+          language === 'ar' ? 'تم بنجاح' : language === 'fr' ? 'Succès' : 'Success',
+          language === 'ar'
+            ? 'تم إنشاء طلب الخدمة اليدوي بنجاح'
+            : language === 'fr'
+            ? 'Demande de service manuelle créée avec succès'
+            : 'Manual service request created successfully'
+        );
+        setShowManualServiceModal(false);
+        setManualServiceRequest({
+          serviceType: '',
+          description: '',
+          date: new Date().toISOString().split('T')[0]
+        });
+        fetchDashboardData(); // Refresh data
+      } else {
+        Alert.alert(t.error || 'Error', data.message || 'Failed to create manual service request');
+      }
+    } catch (error) {
+      console.error('Error creating manual service request:', error);
+      Alert.alert(t.error || 'Error', 'Failed to create manual service request');
+    } finally {
+      setCreatingManualService(false);
+    }
+  };
+
   const renderMaintenanceStateCard = (state: MaintenanceCarState) => (
     <View key={state._id} style={styles.maintenanceCard}>
       <View style={styles.cardHeader}>
         <View style={styles.headerLeft}>
-          <Text style={styles.maintenanceTitle}>
-            {state.maintenanceRequest?.serviceId.name || 
-              (language === 'ar' ? 'خدمة صيانة' : language === 'fr' ? 'Service de maintenance' : 'Maintenance Service')}
-          </Text>
+          <View style={styles.serviceTitleContainer}>
+            <Text style={styles.maintenanceTitle}>
+              {getServiceName(state.maintenanceRequest)}
+            </Text>
+            {loadingServices && (
+              <ActivityIndicator size="small" color={Theme.colors.primary} style={styles.serviceLoadingIndicator} />
+            )}
+          </View>
           <Text style={styles.maintenanceDate}>
             {formatDate(state.createdAt)}
           </Text>
@@ -222,7 +405,7 @@ export default function MaintenanceDashboard() {
             </Text>
             <Text style={[styles.detailValue, state.brakeFluid.isOverdue && { color: Theme.colors.error }]}>
               {formatDate(state.brakeFluid.lastChangeDate)}
-              {state.brakeFluid.isOverdue ? ' ⚠️' : ''}
+              {state.brakeFluid.isOverdue && ' ⚠️'}
             </Text>
           </View>
         </View>
@@ -256,7 +439,7 @@ export default function MaintenanceDashboard() {
       )}
 
       {/* Service cost */}
-      {state.maintenanceRequest?.serviceId.price && (
+      {state.maintenanceRequest?.serviceId && typeof state.maintenanceRequest.serviceId !== 'string' && state.maintenanceRequest.serviceId.price && (
         <View style={styles.costSection}>
           <Text style={styles.costLabel}>
             {language === 'ar' ? 'التكلفة' : language === 'fr' ? 'Coût' : 'Cost'}:
@@ -395,11 +578,11 @@ export default function MaintenanceDashboard() {
             {/* Add new maintenance button */}
             <TouchableOpacity 
               style={styles.addMaintenanceButton}
-              onPress={() => router.push(`/(app)/book-service-v2/${carId}`)}
+              onPress={() => setShowServiceOptions(true)}
             >
               <Ionicons name="add-circle-outline" size={24} color={Theme.colors.white} />
               <Text style={styles.addMaintenanceText}>
-                {language === 'ar' ? 'حجز خدمة جديدة' : language === 'fr' ? 'Réserver un nouveau service' : 'Book New Service'}
+                {language === 'ar' ? 'إضافة خدمة جديدة' : language === 'fr' ? 'Ajouter un nouveau service' : 'Add New Service'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -421,11 +604,184 @@ export default function MaintenanceDashboard() {
                 </Text>
               </View>
             ) : (
-              dashboardData.maintenanceHistory.map(renderMaintenanceStateCard)
+              dashboardData.maintenanceHistory.map((state, index) => (
+                <View key={state._id}>
+                  {renderMaintenanceStateCard(state)}
+                  {index < dashboardData.maintenanceHistory.length - 1 && (
+                    <View style={styles.serviceDivider}>
+                      <View style={styles.dividerLine} />
+                      <View style={styles.dividerDot} />
+                      <View style={styles.dividerLine} />
+                    </View>
+                  )}
+                </View>
+              ))
             )}
           </View>
         </ScrollView>
       </View>
+
+      {/* Service Options Modal */}
+      <Modal
+        visible={showServiceOptions}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowServiceOptions(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.serviceOptionsModal}>
+            <Text style={styles.modalTitle}>
+              {language === 'ar' ? 'اختر نوع الخدمة' : language === 'fr' ? 'Choisir le type de service' : 'Choose Service Type'}
+            </Text>
+            
+            <TouchableOpacity 
+              style={styles.serviceOptionButton}
+              onPress={() => {
+                setShowServiceOptions(false);
+                router.push(`/(app)/book-service-v2/${carId}`);
+              }}
+            >
+              <Ionicons name="calendar-outline" size={24} color={Theme.colors.primary} />
+              <View style={styles.serviceOptionContent}>
+                <Text style={styles.serviceOptionTitle}>
+                  {language === 'ar' ? 'حجز خدمة' : language === 'fr' ? 'Réserver un service' : 'Book Service'}
+                </Text>
+                <Text style={styles.serviceOptionDescription}>
+                  {language === 'ar' ? 'اختر من الخدمات المتاحة وحدد موعد' : language === 'fr' ? 'Choisir parmi les services disponibles et programmer' : 'Choose from available services and schedule'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Theme.colors.textSecondary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.serviceOptionButton}
+              onPress={() => {
+                setShowServiceOptions(false);
+                setShowManualServiceModal(true);
+              }}
+            >
+              <Ionicons name="create-outline" size={24} color={Theme.colors.secondary} />
+              <View style={styles.serviceOptionContent}>
+                <Text style={styles.serviceOptionTitle}>
+                  {language === 'ar' ? 'إدخال يدوي' : language === 'fr' ? 'Saisie manuelle' : 'Manual Entry'}
+                </Text>
+                <Text style={styles.serviceOptionDescription}>
+                  {language === 'ar' ? 'أضف خدمة مخصصة بوصف خاص' : language === 'fr' ? 'Ajouter un service personnalisé avec description' : 'Add custom service with description'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Theme.colors.textSecondary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.cancelButton}
+              onPress={() => setShowServiceOptions(false)}
+            >
+              <Text style={styles.cancelButtonText}>
+                {language === 'ar' ? 'إلغاء' : language === 'fr' ? 'Annuler' : 'Cancel'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Manual Service Request Modal */}
+      <Modal
+        visible={showManualServiceModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowManualServiceModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <ScrollView style={styles.manualServiceModal} showsVerticalScrollIndicator={false}>
+            <Text style={styles.modalTitle}>
+              {language === 'ar' ? 'إضافة خدمة يدوية' : language === 'fr' ? 'Ajouter un service manuel' : 'Add Manual Service'}
+            </Text>
+            
+            {/* Service Type Dropdown */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                {language === 'ar' ? 'نوع الخدمة' : language === 'fr' ? 'Type de service' : 'Service Type'}
+              </Text>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={manualServiceRequest.serviceType}
+                  onValueChange={(itemValue) => 
+                    setManualServiceRequest({...manualServiceRequest, serviceType: itemValue})
+                  }
+                  style={styles.picker}
+                >
+                  <Picker.Item 
+                    label={language === 'ar' ? 'اختر نوع الخدمة' : language === 'fr' ? 'Sélectionner le type' : 'Select service type'} 
+                    value="" 
+                  />
+                  {serviceTypes.map((serviceType) => (
+                    <Picker.Item 
+                      key={serviceType.id} 
+                      label={getServiceTypeDisplayName(serviceType.id)} 
+                      value={serviceType.id} 
+                    />
+                  ))}
+                </Picker>
+              </View>
+            </View>
+
+            {/* Description */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                {language === 'ar' ? 'الوصف' : language === 'fr' ? 'Description' : 'Description'}
+              </Text>
+              <TextInput
+                style={styles.textArea}
+                placeholder={language === 'ar' ? 'أدخل وصف الخدمة...' : language === 'fr' ? 'Entrez la description...' : 'Enter service description...'}
+                value={manualServiceRequest.description}
+                onChangeText={(text) => setManualServiceRequest({...manualServiceRequest, description: text})}
+                multiline
+                numberOfLines={4}
+              />
+            </View>
+
+            {/* Date */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>
+                {language === 'ar' ? 'التاريخ' : language === 'fr' ? 'Date' : 'Date'}
+              </Text>
+              <TextInput
+                style={styles.textInput}
+                value={manualServiceRequest.date}
+                onChangeText={(text) => setManualServiceRequest({...manualServiceRequest, date: text})}
+                placeholder="YYYY-MM-DD"
+              />
+            </View>
+
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.submitButton}
+                onPress={createManualServiceRequest}
+                disabled={creatingManualService}
+              >
+                {creatingManualService ? (
+                  <ActivityIndicator size="small" color={Theme.colors.white} />
+                ) : (
+                  <Text style={styles.submitButtonText}>
+                    {language === 'ar' ? 'إنشاء الطلب' : language === 'fr' ? 'Créer la demande' : 'Create Request'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={() => setShowManualServiceModal(false)}
+                disabled={creatingManualService}
+              >
+                <Text style={styles.cancelButtonText}>
+                  {language === 'ar' ? 'إلغاء' : language === 'fr' ? 'Annuler' : 'Cancel'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
     </LinearGradient>
   );
 }
@@ -681,5 +1037,154 @@ const styles = StyleSheet.create({
     color: Theme.colors.primary,
     flex: 1,
     marginHorizontal: 10,
+  },
+  serviceTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  serviceLoadingIndicator: {
+    marginLeft: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  serviceOptionsModal: {
+    backgroundColor: Theme.colors.white,
+    borderRadius: 20,
+    padding: 20,
+    width: '90%',
+    maxHeight: '80%',
+  },
+  manualServiceModal: {
+    backgroundColor: Theme.colors.white,
+    borderRadius: 20,
+    padding: 20,
+    width: '95%',
+    maxHeight: '90%',
+    alignSelf: 'center',
+    marginTop: 50,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Theme.colors.text,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  serviceOptionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderRadius: 15,
+    backgroundColor: Theme.colors.background,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: Theme.colors.textLight,
+  },
+  serviceOptionContent: {
+    flex: 1,
+    marginLeft: 15,
+  },
+  serviceOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Theme.colors.text,
+    marginBottom: 5,
+  },
+  serviceOptionDescription: {
+    fontSize: 14,
+    color: Theme.colors.textSecondary,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Theme.colors.text,
+    marginBottom: 8,
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: Theme.colors.textLight,
+    borderRadius: 10,
+    backgroundColor: Theme.colors.background,
+  },
+  picker: {
+    height: 50,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: Theme.colors.textLight,
+    borderRadius: 10,
+    padding: 15,
+    fontSize: 16,
+    backgroundColor: Theme.colors.background,
+  },
+  textArea: {
+    borderWidth: 1,
+    borderColor: Theme.colors.textLight,
+    borderRadius: 10,
+    padding: 15,
+    fontSize: 16,
+    backgroundColor: Theme.colors.background,
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  submitButton: {
+    backgroundColor: Theme.colors.primary,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    flex: 1,
+    marginRight: 10,
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: Theme.colors.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    backgroundColor: 'transparent',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: Theme.colors.textSecondary,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  cancelButtonText: {
+    color: Theme.colors.textSecondary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  serviceDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 15,
+    paddingHorizontal: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Theme.colors.textLight,
+  },
+  dividerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Theme.colors.primary,
+    marginHorizontal: 15,
   },
 });

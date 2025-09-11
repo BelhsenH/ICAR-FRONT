@@ -331,17 +331,22 @@ export default function MaintenanceCarStateForm() {
         return (
           <View style={styles.inputContainer}>
             {field.icon && (
-              <Animated.View style={[styles.inputIcon, hasValue && styles.inputIconFilled]}>
-                <Ionicons name={field.icon as any} size={20} color={hasValue ? Theme.colors.white : Theme.colors.textSecondary} />
-              </Animated.View>
+              <View style={[styles.inputIcon, hasValue && styles.inputIconFilled]}>
+                <Ionicons name={field.icon as any} size={18} color={hasValue ? Theme.colors.white : Theme.colors.textSecondary} />
+              </View>
             )}
             <TextInput
               style={[styles.input, field.icon && styles.inputWithIcon, hasValue && styles.inputFilled]}
               value={value as string}
               onChangeText={(text) => handleInputChange(field.key, text)}
               placeholder={field.label}
-              placeholderTextColor={Theme.colors.textSecondary}
+              placeholderTextColor={Theme.colors.textSecondary + '80'}
             />
+            {hasValue && (
+              <View style={styles.inputValidationIcon}>
+                <Ionicons name="checkmark-circle" size={20} color={Theme.colors.success} />
+              </View>
+            )}
           </View>
         );
         
@@ -349,9 +354,9 @@ export default function MaintenanceCarStateForm() {
         return (
           <View style={styles.inputContainer}>
             {field.icon && (
-              <Animated.View style={[styles.inputIcon, hasValue && styles.inputIconFilled]}>
-                <Ionicons name={field.icon as any} size={20} color={hasValue ? Theme.colors.white : Theme.colors.textSecondary} />
-              </Animated.View>
+              <View style={[styles.inputIcon, hasValue && styles.inputIconFilled]}>
+                <Ionicons name={field.icon as any} size={18} color={hasValue ? Theme.colors.white : Theme.colors.textSecondary} />
+              </View>
             )}
             <View style={[styles.inputWithUnit, field.icon && { marginLeft: 40 }]}>
               <TextInput
@@ -359,7 +364,7 @@ export default function MaintenanceCarStateForm() {
                 value={value?.toString() || ''}
                 onChangeText={(text) => handleInputChange(field.key, text ? parseFloat(text) : undefined)}
                 placeholder={field.label}
-                placeholderTextColor={Theme.colors.textSecondary}
+                placeholderTextColor={Theme.colors.textSecondary + '80'}
                 keyboardType="numeric"
               />
               {field.unit && (
@@ -368,6 +373,11 @@ export default function MaintenanceCarStateForm() {
                 </View>
               )}
             </View>
+            {hasValue && (
+              <View style={styles.inputValidationIcon}>
+                <Ionicons name="checkmark-circle" size={20} color={Theme.colors.success} />
+              </View>
+            )}
           </View>
         );
         
@@ -375,21 +385,30 @@ export default function MaintenanceCarStateForm() {
         return (
           <View style={styles.inputContainer}>
             {field.icon && (
-              <Animated.View style={[styles.inputIcon, hasValue && styles.inputIconFilled]}>
-                <Ionicons name={field.icon as any} size={20} color={hasValue ? Theme.colors.white : Theme.colors.textSecondary} />
-              </Animated.View>
+              <View style={[styles.inputIcon, hasValue && styles.inputIconFilled]}>
+                <Ionicons name={field.icon as any} size={18} color={hasValue ? Theme.colors.white : Theme.colors.textSecondary} />
+              </View>
             )}
             <TouchableOpacity
               style={[styles.dateInput, field.icon && styles.inputWithIcon, hasValue && styles.inputFilled]}
               onPress={() => setShowDatePicker(field.key)}
             >
               <Text style={[styles.dateText, !value && styles.placeholderText]}>
-                {value ? new Date(value).toLocaleDateString() : field.label}
+                {value ? new Date(value).toLocaleDateString(language === 'ar' ? 'ar-EG' : language === 'fr' ? 'fr-FR' : 'en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                }) : field.label}
               </Text>
-              <View style={styles.dateIcon}>
-                <Ionicons name="calendar-outline" size={20} color={hasValue ? Theme.colors.primary : Theme.colors.textSecondary} />
+              <View style={[styles.dateIcon, hasValue && styles.dateIconFilled]}>
+                <Ionicons name="calendar" size={18} color={hasValue ? Theme.colors.white : Theme.colors.textSecondary} />
               </View>
             </TouchableOpacity>
+            {hasValue && (
+              <View style={styles.inputValidationIcon}>
+                <Ionicons name="checkmark-circle" size={20} color={Theme.colors.success} />
+              </View>
+            )}
             
             {showDatePicker === field.key && (
               <DateTimePicker
@@ -414,55 +433,83 @@ export default function MaintenanceCarStateForm() {
   };
 
   return (
-    <LinearGradient
-      colors={[Theme.colors.primary, Theme.colors.secondary]}
-      style={styles.container}
-    >
-      <Animated.View 
-        style={[
-          styles.header, 
-          {
-            opacity: animatedValue,
-            transform: [{
-              translateY: animatedValue.interpolate({
-                inputRange: [0, 1],
-                outputRange: [-50, 0],
-              }),
-            }]
-          }
-        ]}
+    <View style={styles.container}>
+      <LinearGradient
+        colors={[Theme.colors.primary, Theme.colors.primary + 'E6']}
+        style={styles.headerGradient}
       >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Theme.colors.white} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>
-            {isEditMode 
-              ? (language === 'ar' ? 'تحديث حالة السيارة' : language === 'fr' ? 'Mettre à jour l\'état' : 'Update Car State')
-              : (language === 'ar' ? 'حالة السيارة' : language === 'fr' ? 'État du véhicule' : 'Car State')
+        <Animated.View 
+          style={[
+            styles.header, 
+            {
+              opacity: animatedValue,
+              transform: [{
+                translateY: animatedValue.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-30, 0],
+                }),
+              }]
             }
-          </Text>
-          <View style={styles.progressContainer}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressText}>
-                {`${Math.round((completedFields / (totalFields || 1)) * 100)}% ${language === 'ar' ? 'مكتمل' : language === 'fr' ? 'terminé' : 'complete'}`}
-              </Text>
-              <Text style={styles.progressCount}>
-                {`${completedFields}/${totalFields} ${language === 'ar' ? 'حقل' : language === 'fr' ? 'champs' : 'fields'}`}
+          ]}
+        >
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="chevron-back" size={26} color={Theme.colors.white} />
+          </TouchableOpacity>
+          
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>
+              {isEditMode 
+                ? (language === 'ar' ? 'تحديث حالة السيارة' : language === 'fr' ? 'Mettre à jour l\'état' : 'Update Vehicle Status')
+                : (language === 'ar' ? 'حالة السيارة' : language === 'fr' ? 'État du véhicule' : 'Vehicle Inspection')
+              }
+            </Text>
+            <Text style={styles.headerSubtitle}>
+              {isEditMode 
+                ? (language === 'ar' ? 'تعديل بيانات الصيانة' : language === 'fr' ? 'Modifier les données de maintenance' : 'Modify maintenance data')
+                : (language === 'ar' ? 'فحص شامل للمركبة' : language === 'fr' ? 'Inspection complète du véhicule' : 'Comprehensive vehicle assessment')
+              }
+            </Text>
+          </View>
+          
+          <View style={styles.headerActions}>
+            <View style={styles.completionBadge}>
+              <Text style={styles.completionPercentage}>
+                {Math.round((completedFields / (totalFields || 1)) * 100)}%
               </Text>
             </View>
-            <View style={styles.progressBarContainer}>
-              <ProgressBar 
-                progress={totalFields > 0 ? completedFields / totalFields : 0} 
-                color={Theme.colors.accent}
-                style={styles.progressBar}
+          </View>
+        </Animated.View>
+        
+        <View style={styles.progressSection}>
+          <View style={styles.progressInfo}>
+            <Text style={styles.progressLabel}>
+              {language === 'ar' ? 'تقدم الإكمال' : language === 'fr' ? 'Progrès de completion' : 'Completion Progress'}
+            </Text>
+            <Text style={styles.progressStats}>
+              {`${completedFields} ${language === 'ar' ? 'من' : language === 'fr' ? 'de' : 'of'} ${totalFields} ${language === 'ar' ? 'حقول مكتملة' : language === 'fr' ? 'champs complétés' : 'fields completed'}`}
+            </Text>
+          </View>
+          <View style={styles.progressBarContainer}>
+            <View style={styles.progressTrack}>
+              <Animated.View 
+                style={[
+                  styles.progressFill, 
+                  { 
+                    width: animatedValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0%', `${Math.round((completedFields / (totalFields || 1)) * 100)}%`]
+                    })
+                  }
+                ]} 
               />
-              <View style={[styles.progressFill, { width: `${Math.round((completedFields / (totalFields || 1)) * 100)}%` }]} />
+            </View>
+            <View style={styles.progressLabels}>
+              <Text style={styles.progressStart}>0%</Text>
+              <Text style={styles.progressEnd}>100%</Text>
             </View>
           </View>
         </View>
-        <View style={styles.headerSpacer} />
-      </Animated.View>
+      </LinearGradient>
 
       <KeyboardAvoidingView 
         style={styles.content}
@@ -486,31 +533,26 @@ export default function MaintenanceCarStateForm() {
               ]}
             >
               <View style={styles.sectionHeader}>
-                <View style={[styles.sectionIconContainer, { backgroundColor: section.color + '20' }]}>
-                  <MaterialIcons name={section.icon as any} size={24} color={section.color} />
+                <View style={[styles.sectionIconContainer, { backgroundColor: section.color + '15', borderColor: section.color + '30' }]}>
+                  <MaterialIcons name={section.icon as any} size={22} color={section.color} />
                 </View>
-                <Text style={styles.sectionTitle}>{section.title}</Text>
-                <View style={styles.sectionStatus}>
-                  <View style={styles.sectionProgress}>
-                    <Text style={[styles.sectionProgressText, { color: section.color }]}>
-                      {section.fields.filter(field => {
+                <View style={styles.sectionTitleContainer}>
+                  <Text style={styles.sectionTitle}>{section.title}</Text>
+                  <View style={styles.sectionMeta}>
+                    <View style={[styles.sectionBadge, { backgroundColor: section.color + '10' }]}>
+                      <Text style={[styles.sectionBadgeText, { color: section.color }]}>
+                        {section.fields.filter(field => {
+                          const value = getFieldValue(field.key);
+                          return value !== null && value !== undefined && value !== '';
+                        }).length}/{section.fields.length} {language === 'ar' ? 'مكتمل' : language === 'fr' ? 'terminé' : 'completed'}
+                      </Text>
+                    </View>
+                    <View style={[styles.statusIndicator, {
+                      backgroundColor: section.fields.filter(field => {
                         const value = getFieldValue(field.key);
                         return value !== null && value !== undefined && value !== '';
-                      }).length}/{section.fields.length}
-                    </Text>
-                    <View style={[styles.miniProgressBar, { backgroundColor: section.color + '20' }]}>
-                      <View 
-                        style={[styles.miniProgressFill, 
-                          { 
-                            backgroundColor: section.color,
-                            width: `${(section.fields.filter(field => {
-                              const value = getFieldValue(field.key);
-                              return value !== null && value !== undefined && value !== '';
-                            }).length / section.fields.length) * 100}%`
-                          }
-                        ]}
-                      />
-                    </View>
+                      }).length === section.fields.length ? Theme.colors.success : Theme.colors.warning
+                    }]} />
                   </View>
                 </View>
               </View>
@@ -528,9 +570,14 @@ export default function MaintenanceCarStateForm() {
           ))}
           
           <View style={styles.additionalSection}>
-            <Text style={styles.sectionTitle}>
-              {language === 'ar' ? 'ملاحظات إضافية' : language === 'fr' ? 'Notes supplémentaires' : 'Additional Notes'}
-            </Text>
+            <View style={styles.additionalSectionHeader}>
+              <View style={[styles.sectionIconContainer, { backgroundColor: Theme.colors.info + '15', borderColor: Theme.colors.info + '30' }]}>
+                <MaterialIcons name="note-add" size={22} color={Theme.colors.info} />
+              </View>
+              <Text style={styles.sectionTitle}>
+                {language === 'ar' ? 'ملاحظات إضافية' : language === 'fr' ? 'Notes supplémentaires' : 'Additional Information'}
+              </Text>
+            </View>
             
             <View style={styles.fieldContainer}>
               <Text style={styles.fieldLabel}>
@@ -580,96 +627,142 @@ export default function MaintenanceCarStateForm() {
         </ScrollView>
         
         <View style={styles.buttonContainer}>
-          <ModernButton
-            title={isEditMode 
-              ? (t.update || 'Update')
-              : (t.save || 'Save')
-            }
-            onPress={handleSubmit}
-            loading={loading}
-            style={styles.saveButton}
-          />
+          <View style={styles.buttonGroup}>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
+              <Text style={styles.cancelButtonText}>
+                {language === 'ar' ? 'إلغاء' : language === 'fr' ? 'Annuler' : 'Cancel'}
+              </Text>
+            </TouchableOpacity>
+            <ModernButton
+              title={isEditMode 
+                ? (t.update || 'Update Status')
+                : (t.save || 'Save Inspection')
+              }
+              onPress={handleSubmit}
+              loading={loading}
+              style={styles.saveButton}
+            />
+          </View>
         </View>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Theme.colors.background,
+  },
+  headerGradient: {
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingBottom: 30,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 50,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: 24,
+    marginBottom: 20,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 16,
+    ...Theme.shadows.sm,
   },
   headerCenter: {
     flex: 1,
-    marginHorizontal: 20,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '700',
     color: Theme.colors.white,
-    textAlign: 'center',
+    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    fontWeight: '400',
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 18,
+  },
+  headerActions: {
+    alignItems: 'flex-end',
+  },
+  completionBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    minWidth: 60,
+    alignItems: 'center',
+    ...Theme.shadows.sm,
+  },
+  completionPercentage: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Theme.colors.white,
+  },
+  progressSection: {
+    paddingHorizontal: 24,
     marginBottom: 8,
   },
-  progressContainer: {
-    alignItems: 'center',
-  },
-  progressHeader: {
+  progressInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    width: '80%',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  progressText: {
+  progressLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.95)',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
-  progressCount: {
+  progressStats: {
     fontSize: 12,
+    fontWeight: '500',
     color: 'rgba(255, 255, 255, 0.7)',
   },
   progressBarContainer: {
-    width: '80%',
-    position: 'relative',
+    marginBottom: 8,
   },
-  progressBar: {
-    height: 6,
+  progressTrack: {
+    height: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 3,
+    borderRadius: 4,
+    overflow: 'hidden',
   },
   progressFill: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    height: 6,
+    height: '100%',
     backgroundColor: Theme.colors.accent,
-    borderRadius: 3,
+    borderRadius: 4,
     ...Theme.shadows.sm,
   },
-  headerSpacer: {
-    width: 40,
+  progressLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  progressStart: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontWeight: '500',
+  },
+  progressEnd: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontWeight: '500',
   },
   content: {
     flex: 1,
     backgroundColor: Theme.colors.background,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    marginTop: -8,
   },
   scrollView: {
     flex: 1,
@@ -677,60 +770,71 @@ const styles = StyleSheet.create({
   },
   section: {
     backgroundColor: Theme.colors.white,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 16,
     ...Theme.shadows.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   sectionIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 16,
+    borderWidth: 1.5,
+    ...Theme.shadows.sm,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Theme.colors.text,
+  sectionTitleContainer: {
     flex: 1,
   },
-  sectionStatus: {
-    marginLeft: 8,
-  },
-  sectionProgress: {
-    alignItems: 'center',
-    minWidth: 60,
-  },
-  sectionProgressText: {
-    fontSize: 12,
+  sectionTitle: {
+    fontSize: 19,
     fontWeight: '700',
+    color: Theme.colors.text,
     marginBottom: 4,
+    lineHeight: 24,
   },
-  miniProgressBar: {
-    width: 40,
-    height: 3,
-    borderRadius: 1.5,
-    overflow: 'hidden',
+  sectionMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  miniProgressFill: {
-    height: '100%',
-    borderRadius: 1.5,
+  sectionBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  sectionBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  statusIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   fieldContainer: {
-    marginBottom: 15,
+    marginBottom: 20,
   },
   fieldLabel: {
-    fontSize: 16,
+    fontSize: 15,
     color: Theme.colors.text,
-    marginBottom: 8,
+    marginBottom: 10,
     fontWeight: '600',
+    letterSpacing: 0.2,
   },
   required: {
     color: Theme.colors.error,
@@ -740,65 +844,83 @@ const styles = StyleSheet.create({
   },
   inputIcon: {
     position: 'absolute',
-    left: 15,
-    top: 15,
+    left: 16,
+    top: 16,
     zIndex: 1,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    transition: 'background-color 0.3s ease',
+    backgroundColor: 'rgba(0,0,0,0.04)',
   },
   inputIconFilled: {
     backgroundColor: Theme.colors.primary,
     ...Theme.shadows.sm,
   },
   input: {
-    borderWidth: 2,
-    borderColor: Theme.colors.textLight,
-    borderRadius: 12,
-    padding: 15,
+    borderWidth: 1.5,
+    borderColor: 'rgba(0,0,0,0.08)',
+    borderRadius: 16,
+    padding: 16,
     fontSize: 16,
     color: Theme.colors.text,
     backgroundColor: Theme.colors.surface,
-    transition: 'border-color 0.2s',
+    minHeight: 52,
+    ...Theme.shadows.sm,
   },
   inputWithIcon: {
-    paddingLeft: 50,
+    paddingLeft: 52,
   },
   inputFilled: {
-    borderColor: Theme.colors.primary,
+    borderColor: Theme.colors.primary + '60',
     backgroundColor: Theme.colors.white,
+    borderWidth: 2,
   },
   inputWithUnit: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   unitContainer: {
-    backgroundColor: Theme.colors.primary + '10',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginLeft: 10,
+    backgroundColor: Theme.colors.primary + '15',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginLeft: 12,
+    borderWidth: 1,
+    borderColor: Theme.colors.primary + '20',
   },
   unitLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: Theme.colors.primary,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   dateInput: {
-    borderWidth: 2,
-    borderColor: Theme.colors.textLight,
-    borderRadius: 12,
-    padding: 15,
+    borderWidth: 1.5,
+    borderColor: 'rgba(0,0,0,0.08)',
+    borderRadius: 16,
+    padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: Theme.colors.surface,
+    minHeight: 52,
+    ...Theme.shadows.sm,
   },
   dateIcon: {
-    padding: 4,
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+  },
+  dateIconFilled: {
+    backgroundColor: Theme.colors.primary,
+  },
+  inputValidationIcon: {
+    position: 'absolute',
+    right: 16,
+    top: 16,
+    zIndex: 1,
   },
   dateText: {
     fontSize: 16,
@@ -814,21 +936,51 @@ const styles = StyleSheet.create({
   },
   additionalSection: {
     backgroundColor: Theme.colors.white,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 100,
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 120,
     ...Theme.shadows.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+  },
+  additionalSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
   },
   buttonContainer: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 30,
     left: 20,
     right: 20,
-    ...Theme.shadows.lg,
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    borderRadius: 16,
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(0,0,0,0.08)',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Theme.colors.textSecondary,
   },
   saveButton: {
+    flex: 2,
     backgroundColor: Theme.colors.success,
     borderRadius: 16,
-    paddingVertical: 16,
+    paddingVertical: 18,
+    ...Theme.shadows.lg,
   },
 });

@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           };
           
           // Try to get user profile from the auth service
-          fetch('http://192.168.1.122:8888/api/auth/me', { headers })
+          fetch('http://192.168.1.163:8888/api/auth/me', { headers })
             .then(response => response.json())
             .then(userData => {
               if (userData && userData.email) {

@@ -653,7 +653,7 @@ export default function FuelTracking() {
                               </LinearGradient>
                               <View style={styles.metricContent}>
                                 <Text style={styles.metricLabel}>{t.quantity || 'Quantité'}</Text>
-                                <Text style={styles.metricValue}>{entry.fuelQuantity} L</Text>
+                                <Text style={styles.metricValue}>{Number(entry.fuelQuantity).toFixed(2)} L</Text>
                               </View>
                             </View>
                             

@@ -67,7 +67,7 @@ const translations = {
     defaultUser: "Utilisateur",
     defaultEmail: "utilisateur@exemple.com",
     manageVehicles: "Gérez vos véhicules et services",
-    myCars: "Mes voitures Disponibles",
+    myCars: "Mes voitures ",
     seeAll: "Voir tout",
     noCarsAdded: "Aucune voiture ajoutée",
     addFirstCar: "Commencez par ajouter votre première voiture pour suivre sa maintenance et ses services",

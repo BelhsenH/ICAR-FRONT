@@ -79,6 +79,9 @@ interface ServiceType {
   name: string;
   nameAr: string;
   nameFr: string;
+  icon: string;
+  color: string;
+  category: string;
 }
 
 interface ManualServiceRequest {
@@ -96,17 +99,17 @@ const Theme = {
 };
 
 const serviceTypes: ServiceType[] = [
-  { id: 'oil_change', name: 'Oil Change', nameAr: 'تغيير الزيت', nameFr: 'Changement d\'huile' },
-  { id: 'tire_rotation', name: 'Tire Rotation', nameAr: 'دوران الإطارات', nameFr: 'Rotation des pneus' },
-  { id: 'brake_inspection', name: 'Brake Inspection', nameAr: 'فحص الفرامل', nameFr: 'Inspection des freins' },
-  { id: 'engine_tune', name: 'Engine Tune-up', nameAr: 'ضبط المحرك', nameFr: 'Révision moteur' },
-  { id: 'transmission', name: 'Transmission Service', nameAr: 'خدمة ناقل الحركة', nameFr: 'Service de transmission' },
-  { id: 'air_filter', name: 'Air Filter Replacement', nameAr: 'استبدال فلتر الهواء', nameFr: 'Remplacement filtre à air' },
-  { id: 'battery', name: 'Battery Service', nameAr: 'خدمة البطارية', nameFr: 'Service de batterie' },
-  { id: 'cooling_system', name: 'Cooling System', nameAr: 'نظام التبريد', nameFr: 'Système de refroidissement' },
-  { id: 'exhaust', name: 'Exhaust System', nameAr: 'نظام العادم', nameFr: 'Système d\'échappement' },
-  { id: 'general_maintenance', name: 'General Maintenance', nameAr: 'صيانة عامة', nameFr: 'Maintenance générale' },
-  { id: 'other', name: 'Other', nameAr: 'أخرى', nameFr: 'Autre' }
+  { id: 'oil_change', name: 'Oil Change', nameAr: 'تغيير الزيت', nameFr: 'Changement d\'huile', icon: 'water-outline', color: '#FF6B6B', category: 'Engine' },
+  { id: 'tire_rotation', name: 'Tire Rotation', nameAr: 'دوران الإطارات', nameFr: 'Rotation des pneus', icon: 'ellipse-outline', color: '#4ECDC4', category: 'Tires' },
+  { id: 'brake_inspection', name: 'Brake Inspection', nameAr: 'فحص الفرامل', nameFr: 'Inspection des freins', icon: 'stop-circle-outline', color: '#FF8A65', category: 'Safety' },
+  { id: 'engine_tune', name: 'Engine Tune-up', nameAr: 'ضبط المحرك', nameFr: 'Révision moteur', icon: 'cog-outline', color: '#5C6BC0', category: 'Engine' },
+  { id: 'transmission', name: 'Transmission Service', nameAr: 'خدمة ناقل الحركة', nameFr: 'Service de transmission', icon: 'settings-outline', color: '#AB47BC', category: 'Drivetrain' },
+  { id: 'air_filter', name: 'Air Filter Replacement', nameAr: 'استبدال فلتر الهواء', nameFr: 'Remplacement filtre à air', icon: 'leaf-outline', color: '#66BB6A', category: 'Filters' },
+  { id: 'battery', name: 'Battery Service', nameAr: 'خدمة البطارية', nameFr: 'Service de batterie', icon: 'battery-charging-outline', color: '#FFA726', category: 'Electrical' },
+  { id: 'cooling_system', name: 'Cooling System', nameAr: 'نظام التبريد', nameFr: 'Système de refroidissement', icon: 'thermometer-outline', color: '#26C6DA', category: 'Engine' },
+  { id: 'exhaust', name: 'Exhaust System', nameAr: 'نظام العادم', nameFr: 'Système d\'échappement', icon: 'cloud-outline', color: '#8D6E63', category: 'Exhaust' },
+  { id: 'general_maintenance', name: 'General Maintenance', nameAr: 'صيانة عامة', nameFr: 'Maintenance générale', icon: 'build-outline', color: '#78909C', category: 'General' },
+  { id: 'other', name: 'Other', nameAr: 'أخرى', nameFr: 'Autre', icon: 'help-circle-outline', color: '#BDBDBD', category: 'Other' }
 ];
 
 export default function MaintenanceDashboard() {
@@ -254,6 +257,46 @@ export default function MaintenanceDashboard() {
     return language === 'ar' ? 'خدمة صيانة' : language === 'fr' ? 'Service de maintenance' : 'Maintenance Service';
   };
 
+  const getServiceIcon = (serviceName: string): string => {
+    const lowerName = serviceName.toLowerCase();
+    if (lowerName.includes('oil')) return 'water-outline';
+    if (lowerName.includes('tire') || lowerName.includes('wheel')) return 'ellipse-outline';
+    if (lowerName.includes('brake')) return 'stop-circle-outline';
+    if (lowerName.includes('engine') || lowerName.includes('tune')) return 'cog-outline';
+    if (lowerName.includes('transmission')) return 'settings-outline';
+    if (lowerName.includes('filter') || lowerName.includes('air')) return 'leaf-outline';
+    if (lowerName.includes('battery')) return 'battery-charging-outline';
+    if (lowerName.includes('cooling') || lowerName.includes('coolant')) return 'thermometer-outline';
+    if (lowerName.includes('exhaust')) return 'cloud-outline';
+    return 'build-outline';
+  };
+
+  const getServiceColor = (serviceName: string): string => {
+    const lowerName = serviceName.toLowerCase();
+    if (lowerName.includes('oil')) return '#FF6B6B';
+    if (lowerName.includes('tire') || lowerName.includes('wheel')) return '#4ECDC4';
+    if (lowerName.includes('brake')) return '#FF8A65';
+    if (lowerName.includes('engine') || lowerName.includes('tune')) return '#5C6BC0';
+    if (lowerName.includes('transmission')) return '#AB47BC';
+    if (lowerName.includes('filter') || lowerName.includes('air')) return '#66BB6A';
+    if (lowerName.includes('battery')) return '#FFA726';
+    if (lowerName.includes('cooling') || lowerName.includes('coolant')) return '#26C6DA';
+    if (lowerName.includes('exhaust')) return '#8D6E63';
+    return '#78909C';
+  };
+
+  const getServiceCategory = (serviceName: string): string => {
+    const lowerName = serviceName.toLowerCase();
+    if (lowerName.includes('oil') || lowerName.includes('engine') || lowerName.includes('cooling')) return 'Engine';
+    if (lowerName.includes('tire') || lowerName.includes('wheel')) return 'Tires';
+    if (lowerName.includes('brake')) return 'Safety';
+    if (lowerName.includes('transmission')) return 'Drivetrain';
+    if (lowerName.includes('filter')) return 'Filters';
+    if (lowerName.includes('battery')) return 'Electrical';
+    if (lowerName.includes('exhaust')) return 'Exhaust';
+    return 'General';
+  };
+
   const getServiceTypeDisplayName = (serviceTypeId: string) => {
     const serviceType = serviceTypes.find(st => st.id === serviceTypeId);
     if (!serviceType) return serviceTypeId;
@@ -331,28 +374,57 @@ export default function MaintenanceDashboard() {
     }
   };
 
-  const renderMaintenanceStateCard = (state: MaintenanceCarState) => (
-    <View key={state._id} style={styles.maintenanceCard}>
-      <View style={styles.cardHeader}>
-        <View style={styles.headerLeft}>
-          <View style={styles.serviceTitleContainer}>
-            <Text style={styles.maintenanceTitle}>
-              {getServiceName(state.maintenanceRequest)}
-            </Text>
-            {loadingServices && (
-              <ActivityIndicator size="small" color={Theme.colors.primary} style={styles.serviceLoadingIndicator} />
-            )}
+  const renderMaintenanceStateCard = (state: MaintenanceCarState) => {
+    const serviceName = getServiceName(state.maintenanceRequest);
+    const serviceIcon = getServiceIcon(serviceName);
+    const serviceColor = getServiceColor(serviceName);
+    const serviceCategory = getServiceCategory(serviceName);
+    const status = state.maintenanceRequest?.status || 'pending';
+    
+    return (
+      <View key={state._id} style={[styles.maintenanceCard, { borderLeftColor: serviceColor, borderLeftWidth: 5 }]}>
+        <View style={styles.cardHeader}>
+          <View style={styles.headerLeft}>
+            <View style={styles.serviceIconContainer}>
+              <View style={[styles.serviceIconWrapper, { backgroundColor: serviceColor + '15' }]}>
+                <Ionicons name={serviceIcon as any} size={24} color={serviceColor} />
+              </View>
+              <View style={styles.serviceTitleContainer}>
+                <Text style={styles.maintenanceTitle}>
+                  {serviceName}
+                </Text>
+                <View style={styles.categoryContainer}>
+                  <Text style={[styles.categoryText, { color: serviceColor }]}>
+                    {serviceCategory}
+                  </Text>
+                  {loadingServices && (
+                    <ActivityIndicator size="small" color={serviceColor} style={styles.serviceLoadingIndicator} />
+                  )}
+                </View>
+                <Text style={styles.maintenanceDate}>
+                  {formatDate(state.createdAt)}
+                </Text>
+              </View>
+            </View>
           </View>
-          <Text style={styles.maintenanceDate}>
-            {formatDate(state.createdAt)}
-          </Text>
+          <View style={styles.statusContainer}>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status) }]}>
+              <Text style={styles.statusText}>
+                {getStatusText(status)}
+              </Text>
+            </View>
+            <View style={[styles.progressIndicator, { backgroundColor: serviceColor + '30' }]}>
+              <View 
+                style={[styles.progressBar, 
+                  { 
+                    backgroundColor: serviceColor,
+                    width: status === 'completed' ? '100%' : status === 'in_progress' ? '60%' : status === 'accepted' ? '30%' : '10%'
+                  }
+                ]} 
+              />
+            </View>
+          </View>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(state.maintenanceRequest?.status || 'pending') }]}>
-          <Text style={styles.statusText}>
-            {getStatusText(state.maintenanceRequest?.status || 'pending')}
-          </Text>
-        </View>
-      </View>
 
       {/* Current mileage */}
       {state.currentMileage && (
@@ -438,31 +510,35 @@ export default function MaintenanceDashboard() {
         </View>
       )}
 
-      {/* Service cost */}
-      {state.maintenanceRequest?.serviceId && typeof state.maintenanceRequest.serviceId !== 'string' && state.maintenanceRequest.serviceId.price && (
-        <View style={styles.costSection}>
-          <Text style={styles.costLabel}>
-            {language === 'ar' ? 'التكلفة' : language === 'fr' ? 'Coût' : 'Cost'}:
-          </Text>
-          <Text style={styles.costValue}>
-            {state.maintenanceRequest.serviceId.price.toFixed(2)} TND
-          </Text>
-        </View>
-      )}
+        {/* Service cost */}
+        {state.maintenanceRequest?.serviceId && typeof state.maintenanceRequest.serviceId !== 'string' && state.maintenanceRequest.serviceId.price && (
+          <View style={styles.costSection}>
+            <View style={styles.costIconContainer}>
+              <Ionicons name="card-outline" size={20} color={serviceColor} />
+              <Text style={styles.costLabel}>
+                {language === 'ar' ? 'التكلفة' : language === 'fr' ? 'Coût' : 'Cost'}
+              </Text>
+            </View>
+            <Text style={[styles.costValue, { color: serviceColor }]}>
+              {state.maintenanceRequest.serviceId.price.toFixed(2)} TND
+            </Text>
+          </View>
+        )}
 
-      {/* View/Edit car state button */}
-      <TouchableOpacity 
-        style={styles.carStateButton}
-        onPress={() => router.push(`/(app)/maintenance-car-state/${carId}/${state.maintenanceRequestId}` as any)}
-      >
-        <Ionicons name="settings-outline" size={20} color={Theme.colors.primary} />
-        <Text style={styles.carStateButtonText}>
-          {language === 'ar' ? 'عرض/تحديث حالة السيارة' : language === 'fr' ? 'Voir/Modifier l\'état' : 'View/Edit Car State'}
-        </Text>
-        <Ionicons name="chevron-forward" size={20} color={Theme.colors.textSecondary} />
-      </TouchableOpacity>
-    </View>
-  );
+        {/* View/Edit car state button */}
+        <TouchableOpacity 
+          style={[styles.carStateButton, { borderColor: serviceColor + '30' }]}
+          onPress={() => router.push(`/(app)/maintenance-car-state/${carId}/${state.maintenanceRequestId}` as any)}
+        >
+          <Ionicons name="settings-outline" size={20} color={serviceColor} />
+          <Text style={[styles.carStateButtonText, { color: serviceColor }]}>
+            {language === 'ar' ? 'عرض/تحديث حالة السيارة' : language === 'fr' ? 'Voir/Modifier l\'état' : 'View/Edit Car State'}
+          </Text>
+          <Ionicons name="chevron-forward" size={20} color={Theme.colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   if (loading) {
     return (
@@ -544,20 +620,33 @@ export default function MaintenanceDashboard() {
         >
           {/* Car info card */}
           <View style={styles.carInfoCard}>
-            <View style={styles.carInfoHeader}>
-              <Ionicons name="car" size={32} color={Theme.colors.primary} />
-              <View style={styles.carInfoText}>
-                <Text style={styles.carName}>
-                  {dashboardData.car.marque} {dashboardData.car.modele}
-                </Text>
-                <Text style={styles.carPlate}>
-                  {dashboardData.car.numeroImmatriculation}
-                </Text>
+            <LinearGradient
+              colors={[Theme.colors.primary + '10', Theme.colors.secondary + '05']}
+              style={styles.carInfoGradient}
+            >
+              <View style={styles.carInfoHeader}>
+                <View style={styles.carIconContainer}>
+                  <Ionicons name="car" size={36} color={Theme.colors.primary} />
+                </View>
+                <View style={styles.carInfoText}>
+                  <Text style={styles.carName}>
+                    {dashboardData.car.marque} {dashboardData.car.modele}
+                  </Text>
+                  <View style={styles.plateContainer}>
+                    <Ionicons name="card-outline" size={16} color={Theme.colors.textSecondary} />
+                    <Text style={styles.carPlate}>
+                      {dashboardData.car.numeroImmatriculation}
+                    </Text>
+                  </View>
+                </View>
               </View>
-            </View>
+            </LinearGradient>
             
             <View style={styles.carStats}>
               <View style={styles.statItem}>
+                <View style={styles.statIconContainer}>
+                  <Ionicons name="document-text-outline" size={20} color={Theme.colors.primary} />
+                </View>
                 <Text style={styles.statValue}>
                   {dashboardData.summary.totalMaintenanceRecords}
                 </Text>
@@ -565,7 +654,11 @@ export default function MaintenanceDashboard() {
                   {language === 'ar' ? 'سجلات الصيانة' : language === 'fr' ? 'Enregistrements' : 'Records'}
                 </Text>
               </View>
+              <View style={styles.statDivider} />
               <View style={styles.statItem}>
+                <View style={styles.statIconContainer}>
+                  <Ionicons name="speedometer-outline" size={20} color={Theme.colors.secondary} />
+                </View>
                 <Text style={styles.statValue}>
                   {(dashboardData.summary.currentMileage || dashboardData.car.kilometrage || 0).toLocaleString()}
                 </Text>
@@ -576,22 +669,40 @@ export default function MaintenanceDashboard() {
             </View>
             
             {/* Add new maintenance button */}
-            <TouchableOpacity 
+            <LinearGradient
+              colors={[Theme.colors.primary, Theme.colors.secondary]}
               style={styles.addMaintenanceButton}
-              onPress={() => setShowServiceOptions(true)}
             >
-              <Ionicons name="add-circle-outline" size={24} color={Theme.colors.white} />
-              <Text style={styles.addMaintenanceText}>
-                {language === 'ar' ? 'إضافة خدمة جديدة' : language === 'fr' ? 'Ajouter un nouveau service' : 'Add New Service'}
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.addMaintenanceButtonInner}
+                onPress={() => setShowServiceOptions(true)}
+              >
+                <View style={styles.addMaintenanceIconContainer}>
+                  <Ionicons name="add-circle-outline" size={26} color={Theme.colors.white} />
+                </View>
+                <Text style={styles.addMaintenanceText}>
+                  {language === 'ar' ? 'إضافة خدمة جديدة' : language === 'fr' ? 'Ajouter un nouveau service' : 'Add New Service'}
+                </Text>
+                <Ionicons name="arrow-forward" size={20} color={Theme.colors.white} />
+              </TouchableOpacity>
+            </LinearGradient>
           </View>
 
           {/* Maintenance history */}
           <View style={styles.historySection}>
-            <Text style={styles.sectionHeaderTitle}>
-              {language === 'ar' ? 'تاريخ الصيانة' : language === 'fr' ? 'Historique de maintenance' : 'Maintenance History'}
-            </Text>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderLeft}>
+                <Ionicons name="time-outline" size={24} color={Theme.colors.primary} />
+                <Text style={styles.sectionHeaderTitle}>
+                  {language === 'ar' ? 'تاريخ الصيانة' : language === 'fr' ? 'Historique de maintenance' : 'Maintenance History'}
+                </Text>
+              </View>
+              <View style={styles.historyCountBadge}>
+                <Text style={styles.historyCount}>
+                  {dashboardData.maintenanceHistory.length}
+                </Text>
+              </View>
+            </View>
             
             {dashboardData.maintenanceHistory.length === 0 ? (
               <View style={styles.noHistoryContainer}>
@@ -846,75 +957,160 @@ const styles = StyleSheet.create({
   },
   carInfoCard: {
     backgroundColor: Theme.colors.white,
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
+    borderRadius: 24,
+    marginBottom: 24,
     ...Theme.shadows.md,
+    elevation: 8,
+    shadowRadius: 16,
+    shadowOpacity: 0.12,
+    overflow: 'hidden',
+  },
+  carInfoGradient: {
+    padding: 24,
   },
   carInfoHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
+  },
+  carIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: Theme.colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Theme.shadows.sm,
+    marginRight: 16,
   },
   carInfoText: {
-    marginLeft: 15,
     flex: 1,
   },
   carName: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '800',
     color: Theme.colors.text,
-    marginBottom: 5,
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  plateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   carPlate: {
     fontSize: 16,
     color: Theme.colors.textSecondary,
+    fontWeight: '600',
+    marginLeft: 6,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   carStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingTop: 15,
+    paddingTop: 20,
     borderTopWidth: 1,
     borderTopColor: Theme.colors.textLight,
+    backgroundColor: Theme.colors.white,
+    borderRadius: 16,
+    margin: -8,
+    marginTop: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   statItem: {
     alignItems: 'center',
+    flex: 1,
+  },
+  statIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Theme.colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: Theme.colors.textLight,
+    alignSelf: 'center',
+    marginTop: 20,
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Theme.colors.primary,
+    fontSize: 28,
+    fontWeight: '800',
+    color: Theme.colors.text,
+    marginBottom: 4,
+    letterSpacing: 0.5,
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: Theme.colors.textSecondary,
-    marginTop: 5,
+    fontWeight: '600',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   addMaintenanceButton: {
-    backgroundColor: Theme.colors.primary,
+    borderRadius: 28,
+    marginTop: 20,
+    ...Theme.shadows.md,
+    elevation: 6,
+  },
+  addMaintenanceButtonInner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 25,
-    marginTop: 15,
-    ...Theme.shadows.sm,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+  },
+  addMaintenanceIconContainer: {
+    marginRight: 12,
   },
   addMaintenanceText: {
     color: Theme.colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
+    fontSize: 17,
+    fontWeight: '700',
+    flex: 1,
+    textAlign: 'center',
+    letterSpacing: 0.5,
   },
   historySection: {
+    marginBottom: 30,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 20,
+    paddingHorizontal: 4,
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   sectionHeaderTitle: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: Theme.colors.text,
-    marginBottom: 15,
+    marginLeft: 12,
+    letterSpacing: 0.3,
+  },
+  historyCountBadge: {
+    backgroundColor: Theme.colors.primary,
+    borderRadius: 16,
+    minWidth: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  historyCount: {
+    color: Theme.colors.white,
+    fontSize: 14,
+    fontWeight: '700',
   },
   noHistoryContainer: {
     alignItems: 'center',
@@ -937,110 +1133,165 @@ const styles = StyleSheet.create({
   },
   maintenanceCard: {
     backgroundColor: Theme.colors.white,
-    borderRadius: 15,
+    borderRadius: 20,
     padding: 20,
-    marginBottom: 15,
+    marginBottom: 20,
     ...Theme.shadows.md,
+    elevation: 8,
+    shadowRadius: 12,
+    shadowOpacity: 0.15,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
+    alignItems: 'flex-start',
+    marginBottom: 20,
   },
   headerLeft: {
     flex: 1,
   },
+  serviceIconContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  serviceIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
   maintenanceTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
     color: Theme.colors.text,
-    marginBottom: 5,
+    marginBottom: 4,
+    letterSpacing: 0.5,
   },
   maintenanceDate: {
     fontSize: 14,
     color: Theme.colors.textSecondary,
+    fontWeight: '500',
+  },
+  categoryContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  statusContainer: {
+    alignItems: 'flex-end',
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 25,
+    marginBottom: 8,
+    minWidth: 80,
+    alignItems: 'center',
   },
   statusText: {
     color: Theme.colors.white,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  progressIndicator: {
+    width: 100,
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 2,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    paddingHorizontal: 5,
+    marginBottom: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   detailLabel: {
     fontSize: 14,
     color: Theme.colors.textSecondary,
-    marginLeft: 10,
+    marginLeft: 12,
     flex: 1,
+    fontWeight: '500',
   },
   detailValue: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: Theme.colors.text,
+    letterSpacing: 0.3,
   },
   detailSection: {
-    marginVertical: 10,
-    paddingVertical: 10,
+    marginVertical: 15,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     borderTopWidth: 1,
     borderTopColor: Theme.colors.textLight,
+    backgroundColor: Theme.colors.background + '50',
+    borderRadius: 12,
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: Theme.colors.text,
-    marginBottom: 10,
+    marginBottom: 12,
+    letterSpacing: 0.3,
   },
   costSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 15,
-    paddingTop: 15,
-    borderTopWidth: 2,
-    borderTopColor: Theme.colors.primary + '30',
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: Theme.colors.textLight,
+  },
+  costIconContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   costLabel: {
     fontSize: 16,
     fontWeight: '600',
     color: Theme.colors.text,
+    marginLeft: 8,
   },
   costValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Theme.colors.primary,
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   carStateButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 15,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
+    marginTop: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     backgroundColor: Theme.colors.background,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Theme.colors.primary + '30',
+    borderRadius: 16,
+    borderWidth: 2,
   },
   carStateButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    color: Theme.colors.primary,
     flex: 1,
-    marginHorizontal: 10,
+    marginHorizontal: 12,
   },
   serviceTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flex: 1,
   },
   serviceLoadingIndicator: {
     marginLeft: 8,

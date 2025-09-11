@@ -32,6 +32,9 @@ interface MaintenanceRequest {
     type?: string;
     price?: number;
   } | string;
+  name?: string;
+  serviceType?: string;
+  description?: string;
 }
 
 interface MaintenanceCarState {
@@ -151,47 +154,115 @@ export default function MaintenanceDashboard() {
       if (data.success) {
         // Enhance maintenance history with actual service names
         const enhancedData = { ...data.data };
+        console.log('Dashboard data received:', enhancedData);
         
         if (enhancedData.maintenanceHistory && enhancedData.maintenanceHistory.length > 0) {
+          console.log('Maintenance history found:', enhancedData.maintenanceHistory);
           // Fetch all services to get service names
           setLoadingServices(true);
           try {
             const servicesResponse = await serviceAPI.getAllServices();
             const services = servicesResponse.data || servicesResponse;
             
-            // Create a map of service IDs to service names
+            // Create a map of service IDs to service objects
             const serviceMap = new Map();
+            console.log('Services data for mapping:', services);
             if (Array.isArray(services)) {
               services.forEach(service => {
-                serviceMap.set(service._id, service.name);
+                if (service._id) {
+                  serviceMap.set(service._id, {
+                    name: service.name,
+                    nameAr: service.nameAr,
+                    nameFr: service.nameFr,
+                    type: service.type,
+                    icon: service.icon
+                  });
+                }
+                if (service.id) {
+                  serviceMap.set(service.id, {
+                    name: service.name,
+                    nameAr: service.nameAr,
+                    nameFr: service.nameFr,
+                    type: service.type,
+                    icon: service.icon
+                  });
+                }
+                console.log('Mapped service:', service._id || service.id, '->', service.name);
               });
+            } else if (services && typeof services === 'object') {
+              // Handle case where services might be an object with nested data
+              const servicesArray = services.data || services.services || [services];
+              if (Array.isArray(servicesArray)) {
+                servicesArray.forEach(service => {
+                  if (service._id) {
+                    serviceMap.set(service._id, {
+                      name: service.name,
+                      nameAr: service.nameAr,
+                      nameFr: service.nameFr,
+                      type: service.type,
+                      icon: service.icon
+                    });
+                  }
+                  if (service.id) {
+                    serviceMap.set(service.id, {
+                      name: service.name,
+                      nameAr: service.nameAr,
+                      nameFr: service.nameFr,
+                      type: service.type,
+                      icon: service.icon
+                    });
+                  }
+                  console.log('Mapped service:', service._id || service.id, '->', service.name);
+                });
+              }
             }
+            console.log('Final service map:', serviceMap);
             
             // Update maintenance history with actual service names
-            enhancedData.maintenanceHistory = enhancedData.maintenanceHistory.map(state => {
+            enhancedData.maintenanceHistory = enhancedData.maintenanceHistory.map((state, index) => {
+              console.log(`Processing maintenance state ${index}:`, state);
               if (state.maintenanceRequest?.serviceId) {
                 const serviceId = typeof state.maintenanceRequest.serviceId === 'string' 
                   ? state.maintenanceRequest.serviceId 
                   : state.maintenanceRequest.serviceId._id || state.maintenanceRequest.serviceId.id;
                 
-                const serviceName = serviceMap.get(serviceId);
-                if (serviceName) {
-                  return {
+                const serviceData = serviceMap.get(serviceId);
+                console.log(`Service ID: ${serviceId}, Mapped data:`, serviceData);
+                
+                if (serviceData) {
+                  // Choose the appropriate name based on language
+                  let serviceName = serviceData.name;
+                  if (language === 'ar' && serviceData.nameAr) {
+                    serviceName = serviceData.nameAr;
+                  } else if (language === 'fr' && serviceData.nameFr) {
+                    serviceName = serviceData.nameFr;
+                  }
+                  
+                  const updatedState = {
                     ...state,
                     maintenanceRequest: {
                       ...state.maintenanceRequest,
                       serviceId: {
-                        ...state.maintenanceRequest.serviceId,
-                        name: serviceName
+                        ...(typeof state.maintenanceRequest.serviceId === 'object' ? state.maintenanceRequest.serviceId : {}),
+                        _id: serviceId,
+                        id: serviceId,
+                        name: serviceName,
+                        nameAr: serviceData.nameAr,
+                        nameFr: serviceData.nameFr,
+                        type: serviceData.type,
+                        icon: serviceData.icon
                       }
                     }
                   };
+                  console.log('Updated state with service data:', updatedState);
+                  return updatedState;
                 }
               }
               return state;
             });
           } catch (servicesError) {
             console.warn('Failed to fetch services for name mapping:', servicesError);
+            console.log('Services response structure:', services);
           } finally {
             setLoadingServices(false);
           }
@@ -246,14 +317,61 @@ export default function MaintenanceDashboard() {
   };
 
   const getServiceName = (maintenanceRequest: MaintenanceRequest | undefined) => {
-    if (maintenanceRequest?.serviceId) {
-      if (typeof maintenanceRequest.serviceId === 'string') {
-        return language === 'ar' ? 'خدمة صيانة' : language === 'fr' ? 'Service de maintenance' : 'Maintenance Service';
-      } else {
-        return maintenanceRequest.serviceId.name || 
-          (language === 'ar' ? 'خدمة صيانة' : language === 'fr' ? 'Service de maintenance' : 'Maintenance Service');
+    console.log('Getting service name for request:', maintenanceRequest);
+    
+    if (!maintenanceRequest) {
+      return language === 'ar' ? 'خدمة صيانة' : language === 'fr' ? 'Service de maintenance' : 'Maintenance Service';
+    }
+
+    // Check if serviceId is an object with populated service data
+    if (maintenanceRequest.serviceId && typeof maintenanceRequest.serviceId === 'object') {
+      console.log('Found object serviceId with data:', maintenanceRequest.serviceId);
+      
+      // Use language-specific name if available
+      if (language === 'ar' && maintenanceRequest.serviceId.nameAr) {
+        console.log('Using Arabic service name:', maintenanceRequest.serviceId.nameAr);
+        return maintenanceRequest.serviceId.nameAr;
+      }
+      if (language === 'fr' && maintenanceRequest.serviceId.nameFr) {
+        console.log('Using French service name:', maintenanceRequest.serviceId.nameFr);
+        return maintenanceRequest.serviceId.nameFr;
+      }
+      if (maintenanceRequest.serviceId.name && 
+          maintenanceRequest.serviceId.name !== 'Service de maintenance' && 
+          maintenanceRequest.serviceId.name !== 'Maintenance Service' && 
+          maintenanceRequest.serviceId.name !== 'خدمة صيانة') {
+        console.log('Using English service name:', maintenanceRequest.serviceId.name);
+        return maintenanceRequest.serviceId.name;
       }
     }
+
+    // Fallback: Extract from description if it contains service info
+    if (maintenanceRequest.description) {
+      console.log('Checking description for service name:', maintenanceRequest.description);
+      // Look for "Service booking for [ServiceName]" pattern
+      const match = maintenanceRequest.description.match(/Service booking for (.+)/);
+      if (match && match[1]) {
+        console.log('Extracted service name from description:', match[1]);
+        return match[1];
+      }
+    }
+
+    // Check serviceType property
+    if (maintenanceRequest.serviceType) {
+      const foundServiceType = serviceTypes.find(st => st.id === maintenanceRequest.serviceType);
+      if (foundServiceType) {
+        console.log('Found service type match:', foundServiceType);
+        return getServiceTypeDisplayName(foundServiceType.id);
+      }
+    }
+
+    // Check if there's a direct name property on the maintenance request
+    if (maintenanceRequest.name && maintenanceRequest.name !== 'Service de maintenance' && maintenanceRequest.name !== 'Maintenance Service') {
+      console.log('Found direct service name:', maintenanceRequest.name);
+      return maintenanceRequest.name;
+    }
+
+    console.log('Falling back to default service name');
     return language === 'ar' ? 'خدمة صيانة' : language === 'fr' ? 'Service de maintenance' : 'Maintenance Service';
   };
 
@@ -375,7 +493,13 @@ export default function MaintenanceDashboard() {
   };
 
   const renderMaintenanceStateCard = (state: MaintenanceCarState) => {
+    // Debug logging
+    console.log('Rendering maintenance state:', state);
+    console.log('Service ID details:', state.maintenanceRequest?.serviceId);
+    
     const serviceName = getServiceName(state.maintenanceRequest);
+    console.log('Resolved service name:', serviceName);
+    
     const serviceIcon = getServiceIcon(serviceName);
     const serviceColor = getServiceColor(serviceName);
     const serviceCategory = getServiceCategory(serviceName);
@@ -1163,14 +1287,15 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   maintenanceTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
     color: Theme.colors.text,
     marginBottom: 4,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
+    lineHeight: 20,
   },
   maintenanceDate: {
-    fontSize: 14,
+    fontSize: 12,
     color: Theme.colors.textSecondary,
     fontWeight: '500',
   },
@@ -1180,10 +1305,10 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   categoryText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
   },
   statusContainer: {
     alignItems: 'flex-end',
@@ -1221,14 +1346,14 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   detailLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: Theme.colors.textSecondary,
     marginLeft: 12,
     flex: 1,
     fontWeight: '500',
   },
   detailValue: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '700',
     color: Theme.colors.text,
     letterSpacing: 0.3,
@@ -1243,7 +1368,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: Theme.colors.text,
     marginBottom: 12,
@@ -1263,13 +1388,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   costLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: Theme.colors.text,
     marginLeft: 8,
   },
   costValue: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
@@ -1285,7 +1410,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   carStateButtonText: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
     flex: 1,
     marginHorizontal: 12,

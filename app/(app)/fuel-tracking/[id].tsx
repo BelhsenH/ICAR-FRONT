@@ -359,6 +359,33 @@ export default function FuelTracking() {
     return language === 'fr' ? (fuel?.labelFr || value) : (fuel?.labelAr || value);
   };
 
+  // Safe date formatting function
+  const formatDate = (dateValue: any) => {
+    try {
+      if (!dateValue) return 'Date non disponible';
+
+      // Handle different date formats
+      let date: Date;
+      if (typeof dateValue === 'string') {
+        // Try parsing ISO string or other formats
+        date = new Date(dateValue);
+      } else if (dateValue instanceof Date) {
+        date = dateValue;
+      } else {
+        return 'Date invalide';
+      }
+
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'Date invalide';
+      }
+
+      return date.toLocaleDateString('fr-FR');
+    } catch (error) {
+      return 'Date invalide';
+    }
+  };
+
   // Enhanced filtering and sorting logic
   const getFilteredEntries = () => {
     let filtered = [...fuelEntries];
@@ -377,6 +404,8 @@ export default function FuelTracking() {
     if (filterPeriod !== 'all') {
       filtered = filtered.filter(entry => {
         const entryDate = new Date(entry.date);
+        // Skip invalid dates
+        if (isNaN(entryDate.getTime())) return false;
         switch (filterPeriod) {
           case 'last30':
             return (now.getTime() - entryDate.getTime()) <= (30 * 24 * 60 * 60 * 1000);
@@ -903,7 +932,7 @@ export default function FuelTracking() {
                           <View style={styles.dateSection}>
                             <Ionicons name="calendar-outline" size={16} color={Colors.primary} />
                             <Text style={styles.cardDateText}>
-                              {new Date(entry.date).toLocaleDateString('fr-FR')}
+                              {entry.date}
                             </Text>
                           </View>
                           <View style={styles.consumptionBadge}>

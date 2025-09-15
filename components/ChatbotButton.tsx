@@ -773,9 +773,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     maxWidth: width * 0.85,
   },
-  userMessageBubble: {
-    flexDirection: 'row-reverse',
-  },
+  
   messageContentBubble: {
     flex: 1,
     marginHorizontal: Spacing.sm,
@@ -801,9 +799,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.lg,
     backgroundColor: Colors.surface,
   },
-  botMessageBubble: {
-    flexDirection: 'row',
-  },
+  
   messageTextContainer: {
     flex: 1,
     marginHorizontal: Spacing.sm,
@@ -813,6 +809,8 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     borderBottomRightRadius: 4,
     padding: Spacing.md,
+    flexDirection: 'row-reverse',
+
   },
   botMessageBubble: {
     backgroundColor: Colors.surface,
@@ -821,6 +819,8 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderWidth: 1,
     borderColor: Colors.textLight,
+    flexDirection: 'row',
+
   },
   messageText: {
     fontSize: Typography.fontSize.base,

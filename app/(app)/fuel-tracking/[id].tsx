@@ -66,12 +66,32 @@ const drivingConditions = [
   { value: 'mixed', labelFr: 'Mixte', labelAr: 'مختلط' }
 ];
 
+// Predefined fuel types with their prices (in dinars per liter)
 const fuelTypes = [
-  { value: 'Super Sans Plomb', labelFr: 'Super Sans Plomb', labelAr: 'سوبر خالي من الرصاص' },
-  { value: 'Pétrole Lampant', labelFr: 'Pétrole Lampant', labelAr: 'بترول لامبان' },
-  { value: 'Gasoil Ordinaire', labelFr: 'Gasoil Ordinaire', labelAr: 'غازوال عادي' },
-  { value: 'Carburant pour Moteur Diesel (Gazole 50)', labelFr: 'Carburant pour Moteur Diesel (Gazole 50)', labelAr: 'وقود محرك ديزل (غازوال 50)' },
-  { value: 'Fuel Oil n° 2 (type 310 cSt)', labelFr: 'Fuel Oil n° 2 (type 310 cSt)', labelAr: 'زيت الوقود رقم 2 (نوع 310 cSt)' }
+  {
+    value: 'sans plomb super',
+    labelFr: 'Sans plomb super',
+    labelAr: 'سوبر خالي من الرصاص',
+    price: 2.525 // 2525 millimes
+  },
+  {
+    value: 'gasoil sans soufre',
+    labelFr: 'Gasoil sans soufre',
+    labelAr: 'غازوال خالي من الكبريت',
+    price: 2.205 // 2205 millimes
+  },
+  {
+    value: 'gasoil',
+    labelFr: 'Gasoil',
+    labelAr: 'غازوال',
+    price: 1.985 // 1985 millimes
+  },
+  {
+    value: 'sans plomb premier',
+    labelFr: 'Sans plomb premier',
+    labelAr: 'خالي من الرصاص أول',
+    price: 2.855 // 2855 millimes
+  }
 ];
 
 export default function FuelTracking() {
@@ -91,7 +111,7 @@ export default function FuelTracking() {
     date: new Date(),
     odometerReading: '',
     fuelQuantity: '',
-    pricePerLiter: '',
+    pricePerLiter: fuelTypes[0].price.toString(),
     totalCost: '',
     fuelStation: fuelStations[0],
     drivingConditions: drivingConditions[0].value,
@@ -106,6 +126,12 @@ export default function FuelTracking() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  // New state for enhanced features
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterPeriod, setFilterPeriod] = useState('all'); // all, last30, last90, thisYear
+  const [sortOrder, setSortOrder] = useState('desc'); // desc, asc
+  const [selectedMetrics, setSelectedMetrics] = useState(['consumption', 'cost', 'efficiency']);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -185,6 +211,15 @@ export default function FuelTracking() {
     return price > 0 ? totalCost / price : 0;
   };
 
+  const handleFuelTypeChange = (fuelType: string) => {
+    const selectedFuel = fuelTypes.find(fuel => fuel.value === fuelType);
+    setFormData({
+      ...formData,
+      fuelType: fuelType,
+      pricePerLiter: selectedFuel ? selectedFuel.price.toString() : ''
+    });
+  };
+
 
   const validateForm = () => {
     const errors = {
@@ -192,7 +227,7 @@ export default function FuelTracking() {
       pricePerLiter: !formData.pricePerLiter || parseFloat(formData.pricePerLiter) <= 0,
       totalCost: !formData.totalCost || parseFloat(formData.totalCost) <= 0
     };
-    
+
     setValidationErrors(errors);
     return !Object.values(errors).some(error => error);
   };
@@ -212,8 +247,6 @@ export default function FuelTracking() {
         carId: id as string,
         date: formData.date.toISOString(),
         odometerReading: parseFloat(formData.odometerReading),
-        fuelQuantity: calculateFuelQuantity(),
-        pricePerLiter: parseFloat(formData.pricePerLiter),
         totalCost: parseFloat(formData.totalCost),
         fuelStation: formData.fuelStation,
         drivingConditions: formData.drivingConditions,
@@ -227,15 +260,16 @@ export default function FuelTracking() {
         setAddModalVisible(false);
         
         // Reset form
+        const initialFuelType = fuelTypes[0];
         setFormData({
           date: new Date(),
           odometerReading: '',
           fuelQuantity: '',
-          pricePerLiter: '',
+          pricePerLiter: initialFuelType.price.toString(),
           totalCost: '',
           fuelStation: fuelStations[0],
           drivingConditions: drivingConditions[0].value,
-          fuelType: fuelTypes[0].value
+          fuelType: initialFuelType.value
         });
         setValidationErrors({
           odometerReading: false,
@@ -277,6 +311,7 @@ export default function FuelTracking() {
   // Use statistics from API instead of calculating locally
   const averages = statistics;
 
+  // Helper functions for labels
   const getDrivingConditionLabel = (value: string) => {
     const condition = drivingConditions.find(c => c.value === value);
     return language === 'fr' ? condition?.labelFr : condition?.labelAr;
@@ -286,6 +321,76 @@ export default function FuelTracking() {
     const fuel = fuelTypes.find(f => f.value === value);
     return language === 'fr' ? fuel?.labelFr : fuel?.labelAr;
   };
+
+  // Enhanced filtering and sorting logic
+  const getFilteredEntries = () => {
+    let filtered = [...fuelEntries];
+
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter(entry =>
+        entry.fuelStation.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        getFuelTypeLabel(entry.fuelType)?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        getDrivingConditionLabel(entry.drivingConditions)?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Apply period filter
+    const now = new Date();
+    if (filterPeriod !== 'all') {
+      filtered = filtered.filter(entry => {
+        const entryDate = new Date(entry.date);
+        switch (filterPeriod) {
+          case 'last30':
+            return (now.getTime() - entryDate.getTime()) <= (30 * 24 * 60 * 60 * 1000);
+          case 'last90':
+            return (now.getTime() - entryDate.getTime()) <= (90 * 24 * 60 * 60 * 1000);
+          case 'thisYear':
+            return entryDate.getFullYear() === now.getFullYear();
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+
+    return filtered;
+  };
+
+  const filteredEntries = getFilteredEntries();
+
+  // Calculate filtered statistics
+  const getFilteredStatistics = () => {
+    if (filteredEntries.length === 0) return null;
+
+    const totalCost = filteredEntries.reduce((sum, entry) => sum + entry.totalCost, 0);
+    const totalQuantity = filteredEntries.reduce((sum, entry) => sum + entry.fuelQuantity, 0);
+    const avgConsumption = filteredEntries
+      .filter(entry => entry.fuelConsumption)
+      .reduce((sum, entry, _, arr) => sum + (entry.fuelConsumption || 0) / arr.length, 0);
+
+    const sortedByDate = [...filteredEntries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const totalDistance = sortedByDate.length > 1 ?
+      sortedByDate[sortedByDate.length - 1].odometerReading - sortedByDate[0].odometerReading : 0;
+
+    return {
+      totalCost,
+      totalQuantity,
+      avgConsumption,
+      totalDistance,
+      avgCostPerKm: totalDistance > 0 ? totalCost / totalDistance : 0,
+      entriesCount: filteredEntries.length
+    };
+  };
+
+  const filteredStats = getFilteredStatistics();
+
 
   return (
     <PaperProvider theme={LightTheme}>
@@ -348,9 +453,34 @@ export default function FuelTracking() {
               </LinearGradient>
             </Animated.View>
 
-            {/* Enhanced Statistics */}
+            {/* Enhanced Statistics Dashboard */}
             {averages && (
               <Animated.View style={[{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+                {/* Statistics Toggle and Filter Chips */}
+                <View style={styles.statsControlsContainer}>
+                  <View style={styles.filterChipsContainer}>
+                    {['all', 'last30', 'last90', 'thisYear'].map((period) => (
+                      <TouchableOpacity
+                        key={period}
+                        onPress={() => setFilterPeriod(period)}
+                        style={[
+                          styles.filterChip,
+                          filterPeriod === period && styles.activeFilterChip
+                        ]}
+                      >
+                        <Text style={[
+                          styles.filterChipText,
+                          filterPeriod === period && styles.activeFilterChipText
+                        ]}>
+                          {period === 'all' ? 'Tout' :
+                           period === 'last30' ? '30j' :
+                           period === 'last90' ? '90j' : 'Cette année'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
                 <Card style={styles.enhancedStatsCard}>
                   <Card.Content>
                     <View style={styles.statsHeaderContainer}>
@@ -359,10 +489,17 @@ export default function FuelTracking() {
                         style={styles.statsHeaderGradient}
                       >
                         <Ionicons name="analytics-outline" size={24} color={Colors.primary} />
-                        <Text style={styles.enhancedSectionTitle}>{t.statistics || 'Statistiques'}</Text>
+                        <Text style={styles.enhancedSectionTitle}>
+                          {t.statistics || 'Statistiques'}
+                          {filterPeriod !== 'all' && (
+                            <Text style={styles.statsSubtitle}>
+                              {filteredStats ? ` (${filteredStats.entriesCount} entrées)` : ''}
+                            </Text>
+                          )}
+                        </Text>
                       </LinearGradient>
                     </View>
-                    
+
                     <View style={styles.enhancedStatsGrid}>
                       <LinearGradient
                         colors={['#FF6B6B20', '#FF6B6B10']}
@@ -372,12 +509,21 @@ export default function FuelTracking() {
                           <Ionicons name="speedometer-outline" size={20} color="#FF6B6B" />
                         </View>
                         <Text style={[styles.enhancedStatValue, { color: '#FF6B6B' }]}>
-                          {averages.avgConsumption.toFixed(2)}
+                          {filteredStats ? filteredStats.avgConsumption.toFixed(2) : averages.avgConsumption.toFixed(2)}
                         </Text>
                         <Text style={styles.statUnit}>L/100km</Text>
                         <Text style={styles.enhancedStatLabel}>{t.avgConsumption || 'Consommation moyenne'}</Text>
+                        {filteredStats && filteredStats.avgConsumption !== averages.avgConsumption && (
+                          <View style={styles.comparisonIndicator}>
+                            <Ionicons
+                              name={filteredStats.avgConsumption < averages.avgConsumption ? "trending-down" : "trending-up"}
+                              size={12}
+                              color={filteredStats.avgConsumption < averages.avgConsumption ? "#28A745" : "#FF6B6B"}
+                            />
+                          </View>
+                        )}
                       </LinearGradient>
-                      
+
                       <LinearGradient
                         colors={['#4ECDC420', '#4ECDC410']}
                         style={[styles.enhancedStatItem, styles.costCard]}
@@ -386,12 +532,21 @@ export default function FuelTracking() {
                           <Ionicons name="cash-outline" size={20} color="#4ECDC4" />
                         </View>
                         <Text style={[styles.enhancedStatValue, { color: '#4ECDC4' }]}>
-                          {averages.avgCostPerKm.toFixed(3)}
+                          {filteredStats ? filteredStats.avgCostPerKm.toFixed(3) : averages.avgCostPerKm.toFixed(3)}
                         </Text>
                         <Text style={styles.statUnit}>DT/km</Text>
                         <Text style={styles.enhancedStatLabel}>{t.avgCostPerKm || 'Coût moyen par km'}</Text>
+                        {filteredStats && filteredStats.avgCostPerKm !== averages.avgCostPerKm && (
+                          <View style={styles.comparisonIndicator}>
+                            <Ionicons
+                              name={filteredStats.avgCostPerKm < averages.avgCostPerKm ? "trending-down" : "trending-up"}
+                              size={12}
+                              color={filteredStats.avgCostPerKm < averages.avgCostPerKm ? "#28A745" : "#FF6B6B"}
+                            />
+                          </View>
+                        )}
                       </LinearGradient>
-                      
+
                       <LinearGradient
                         colors={['#45B7D120', '#45B7D110']}
                         style={[styles.enhancedStatItem, styles.distanceCard]}
@@ -400,12 +555,12 @@ export default function FuelTracking() {
                           <Ionicons name="map-outline" size={20} color="#45B7D1" />
                         </View>
                         <Text style={[styles.enhancedStatValue, { color: '#45B7D1' }]}>
-                          {averages.totalDistance}
+                          {filteredStats ? filteredStats.totalDistance : averages.totalDistance}
                         </Text>
                         <Text style={styles.statUnit}>km</Text>
                         <Text style={styles.enhancedStatLabel}>{t.totalDistance || 'Distance totale'}</Text>
                       </LinearGradient>
-                      
+
                       <LinearGradient
                         colors={['#F7931E20', '#F7931E10']}
                         style={[styles.enhancedStatItem, styles.totalCostCard]}
@@ -414,12 +569,46 @@ export default function FuelTracking() {
                           <Ionicons name="wallet-outline" size={20} color="#F7931E" />
                         </View>
                         <Text style={[styles.enhancedStatValue, { color: '#F7931E' }]}>
-                          {averages.totalCost.toFixed(2)}
+                          {filteredStats ? filteredStats.totalCost.toFixed(2) : averages.totalCost.toFixed(2)}
                         </Text>
                         <Text style={styles.statUnit}>DT</Text>
                         <Text style={styles.enhancedStatLabel}>{t.totalCost || 'Coût total'}</Text>
                       </LinearGradient>
                     </View>
+
+                    {/* Quick Insights Bar */}
+                    {filteredStats && (
+                      <View style={styles.quickInsightsContainer}>
+                        <LinearGradient
+                          colors={[Colors.accent + '10', Colors.primary + '05']}
+                          style={styles.quickInsightsGradient}
+                        >
+                          <View style={styles.insightItem}>
+                            <Ionicons name="water-outline" size={16} color={Colors.accent} />
+                            <Text style={styles.insightLabel}>Quantité totale</Text>
+                            <Text style={styles.insightValue}>{filteredStats.totalQuantity.toFixed(1)}L</Text>
+                          </View>
+                          <View style={styles.insightDivider} />
+                          <View style={styles.insightItem}>
+                            <Ionicons name="library-outline" size={16} color={Colors.primary} />
+                            <Text style={styles.insightLabel}>Pleins</Text>
+                            <Text style={styles.insightValue}>{filteredStats.entriesCount}</Text>
+                          </View>
+                          {filteredStats.totalDistance > 0 && (
+                            <>
+                              <View style={styles.insightDivider} />
+                              <View style={styles.insightItem}>
+                                <Ionicons name="calculator-outline" size={16} color="#F7931E" />
+                                <Text style={styles.insightLabel}>Coût/100km</Text>
+                                <Text style={styles.insightValue}>
+                                  {((filteredStats.totalCost / filteredStats.totalDistance) * 100).toFixed(2)}DT
+                                </Text>
+                              </View>
+                            </>
+                          )}
+                        </LinearGradient>
+                      </View>
+                    )}
                   </Card.Content>
                 </Card>
 
@@ -549,7 +738,7 @@ export default function FuelTracking() {
                               colors={[Colors.accent + '20', Colors.primary + '10']}
                               style={styles.goalContainer}
                             >
-                              <Ionicons name="target-outline" size={16} color={Colors.accent} />
+                              <Ionicons name="flag-outline" size={16} color={Colors.accent} />
                               <Text style={styles.goalText}>
                                 {averages.avgConsumption < 8 ? 
                                   (t.excellentEfficiency || 'Excellente efficacité!') :
@@ -574,9 +763,44 @@ export default function FuelTracking() {
                     style={styles.historyHeaderGradient}
                   >
                     <Ionicons name="time-outline" size={24} color={Colors.accent} />
-                    <Text style={styles.enhancedSectionTitle}>{t.fuelHistory || 'Historique des pleins'}</Text>
+                    <Text style={styles.enhancedSectionTitle}>
+                      {t.fuelHistory || 'Historique des pleins'}
+                      {filteredEntries.length !== fuelEntries.length && (
+                        <Text style={styles.statsSubtitle}>
+                          {' '}({filteredEntries.length}/{fuelEntries.length})
+                        </Text>
+                      )}
+                    </Text>
                   </LinearGradient>
                 </View>
+
+                {/* Search and Sort Controls */}
+                {fuelEntries.length > 0 && (
+                  <View style={styles.historyControlsContainer}>
+                    <View style={styles.searchContainer}>
+                      <LinearGradient
+                        colors={[Colors.background, '#F8F9FA']}
+                        style={styles.searchInputContainer}
+                      >
+                        <Ionicons name="search-outline" size={20} color={Colors.textSecondary} />
+                        <TextInput
+                          style={styles.searchInput}
+                          value={searchQuery}
+                          onChangeText={setSearchQuery}
+                          placeholder="Rechercher par station, carburant..."
+                          placeholderTextColor={Colors.textSecondary}
+                        />
+                        {searchQuery ? (
+                          <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <Ionicons name="close-circle" size={20} color={Colors.textSecondary} />
+                          </TouchableOpacity>
+                        ) : null}
+                      </LinearGradient>
+                    </View>
+
+                   
+                  </View>
+                )}
                 
                 {fuelEntries.length === 0 ? (
                   <LinearGradient
@@ -612,10 +836,32 @@ export default function FuelTracking() {
                       </TouchableOpacity>
                     </LinearGradient>
                   </LinearGradient>
+                ) : filteredEntries.length === 0 ? (
+                  <View style={styles.noResultsContainer}>
+                    <LinearGradient
+                      colors={[Colors.accent + '10', Colors.primary + '05']}
+                      style={styles.noResultsGradient}
+                    >
+                      <Ionicons name="search-outline" size={48} color={Colors.textSecondary} />
+                      <Text style={styles.noResultsText}>Aucun résultat trouvé</Text>
+                      <Text style={styles.noResultsSubtext}>
+                        Essayez de modifier vos critères de recherche ou de filtrage
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setSearchQuery('');
+                          setFilterPeriod('all');
+                        }}
+                        style={styles.clearFiltersButton}
+                      >
+                        <Text style={styles.clearFiltersText}>Effacer les filtres</Text>
+                      </TouchableOpacity>
+                    </LinearGradient>
+                  </View>
                 ) : (
-                  // Mobile-Optimized Cards Layout
+                  // Enhanced Mobile-Optimized Cards Layout
                   <View style={styles.mobileCardsContainer}>
-                    {fuelEntries.map((entry, index) => (
+                    {filteredEntries.map((entry, index) => (
                       <View key={entry.id} style={[
                         styles.fuelEntryCard,
                         index % 2 === 0 ? styles.evenCard : styles.oddCard
@@ -643,7 +889,7 @@ export default function FuelTracking() {
                         </View>
                         
                         <View style={styles.cardContent}>
-                          <View style={styles.metricRow}>
+                          <View style={styles.primaryMetricsRow}>
                             <View style={styles.metricItem}>
                               <LinearGradient
                                 colors={['#45B7D120', '#45B7D110']}
@@ -656,7 +902,7 @@ export default function FuelTracking() {
                                 <Text style={styles.metricValue}>{Number(entry.fuelQuantity).toFixed(2)} L</Text>
                               </View>
                             </View>
-                            
+
                             <View style={styles.metricItem}>
                               <LinearGradient
                                 colors={['#F7931E20', '#F7931E10']}
@@ -671,6 +917,60 @@ export default function FuelTracking() {
                                 </Text>
                               </View>
                             </View>
+
+                            <View style={styles.metricItem}>
+                              <LinearGradient
+                                colors={['#9C27B020', '#9C27B010']}
+                                style={styles.metricIconContainer}
+                              >
+                                <Ionicons name="speedometer-outline" size={16} color="#9C27B0" />
+                              </LinearGradient>
+                              <View style={styles.metricContent}>
+                                <Text style={styles.metricLabel}>Kilométrage</Text>
+                                <Text style={[styles.metricValue, { color: '#9C27B0' }]}>
+                                  {entry.odometerReading.toLocaleString()} km
+                                </Text>
+                              </View>
+                            </View>
+                          </View>
+
+                          <View style={styles.secondaryMetricsRow}>
+                            <View style={styles.detailChip}>
+                              <Ionicons name="business-outline" size={14} color={Colors.textSecondary} />
+                              <Text style={styles.detailChipText}>{entry.fuelStation}</Text>
+                            </View>
+                            <View style={styles.detailChip}>
+                              <Ionicons name="flash-outline" size={14} color={Colors.textSecondary} />
+                              <Text style={styles.detailChipText}>{getFuelTypeLabel(entry.fuelType)}</Text>
+                            </View>
+                            <View style={styles.detailChip}>
+                              <Ionicons name="car-outline" size={14} color={Colors.textSecondary} />
+                              <Text style={styles.detailChipText}>{getDrivingConditionLabel(entry.drivingConditions)}</Text>
+                            </View>
+                          </View>
+
+                          {/* Price per liter info */}
+                          <View style={styles.priceInfoRow}>
+                            <Text style={styles.priceInfoText}>
+                              Prix: {(entry.totalCost / entry.fuelQuantity).toFixed(3)} DT/L
+                            </Text>
+                            {entry.fuelConsumption && (
+                              <View style={styles.efficiencyBadge}>
+                                <Ionicons
+                                  name={entry.fuelConsumption < 7 ? "leaf-outline" : entry.fuelConsumption < 10 ? "analytics-outline" : "alert-outline"}
+                                  size={12}
+                                  color={entry.fuelConsumption < 7 ? "#28A745" : entry.fuelConsumption < 10 ? "#F7931E" : "#FF6B6B"}
+                                />
+                                <Text style={[
+                                  styles.efficiencyText,
+                                  {
+                                    color: entry.fuelConsumption < 7 ? "#28A745" : entry.fuelConsumption < 10 ? "#F7931E" : "#FF6B6B"
+                                  }
+                                ]}>
+                                  {entry.fuelConsumption < 7 ? 'Efficace' : entry.fuelConsumption < 10 ? 'Normal' : 'Élevé'}
+                                </Text>
+                              </View>
+                            )}
                           </View>
                         </View>
                       </View>
@@ -755,10 +1055,12 @@ export default function FuelTracking() {
 
               {/* Kilométrage compteur */}
               <View style={styles.inputGroup}>
-                <Text style={styles.enhancedInputLabel}>
-                  <Ionicons name="speedometer-outline" size={16} color={Colors.primary} /> 
-                  {t.odometerReading || 'Kilométrage compteur'} (km) *
-                </Text>
+                <View style={styles.inputLabelContainer}>
+                  <Ionicons name="speedometer-outline" size={16} color={Colors.primary} />
+                  <Text style={styles.enhancedInputLabel}>
+                    {t.odometerReading || 'Kilométrage compteur'} (km) *
+                  </Text>
+                </View>
                 <View style={[styles.enhancedInputContainer, validationErrors.odometerReading && styles.errorInput]}>
                   <TextInput
                     style={styles.enhancedInput}
@@ -785,21 +1087,23 @@ export default function FuelTracking() {
 
               {/* Type de carburant */}
               <View style={styles.inputGroup}>
-                <Text style={styles.enhancedInputLabel}>
-                  <Ionicons name="flash-outline" size={16} color={Colors.primary} /> 
-                  {t.fuelType || 'Type de carburant'}
-                </Text>
+                <View style={styles.inputLabelContainer}>
+                  <Ionicons name="flash-outline" size={16} color={Colors.primary} />
+                  <Text style={styles.enhancedInputLabel}>
+                    {t.fuelType || 'Type de carburant'}
+                  </Text>
+                </View>
                 <View style={styles.enhancedPickerContainer}>
                   <Picker
                     selectedValue={formData.fuelType}
-                    onValueChange={(value) => setFormData({ ...formData, fuelType: value })}
+                    onValueChange={handleFuelTypeChange}
                     style={styles.enhancedPicker}
                   >
                     {fuelTypes.map((fuel) => (
-                      <Picker.Item 
-                        key={fuel.value} 
-                        label={language === 'fr' ? fuel.labelFr : fuel.labelAr}
-                        value={fuel.value} 
+                      <Picker.Item
+                        key={fuel.value}
+                        label={`${language === 'fr' ? fuel.labelFr : fuel.labelAr} (${fuel.price} DT/L)`}
+                        value={fuel.value}
                       />
                     ))}
                   </Picker>
@@ -807,42 +1111,36 @@ export default function FuelTracking() {
                 </View>
               </View>
 
-              {/* Prix par litre */}
+              {/* Prix par litre (Auto-complété) */}
               <View style={styles.inputGroup}>
-                <Text style={styles.enhancedInputLabel}>
-                  <Ionicons name="pricetag-outline" size={16} color={Colors.primary} /> 
-                  {t.pricePerLiter || 'Prix par litre'} (DT) *
-                </Text>
-                <View style={[styles.enhancedInputContainer, validationErrors.pricePerLiter && styles.errorInput]}>
-                  <TextInput
-                    style={styles.enhancedInput}
-                    value={formData.pricePerLiter}
-                    onChangeText={(text) => {
-                      const formatted = formatNumberInput(text, 'pricePerLiter');
-                      setFormData({ ...formData, pricePerLiter: formatted });
-                      if (validationErrors.pricePerLiter) {
-                        setValidationErrors({ ...validationErrors, pricePerLiter: false });
-                      }
-                    }}
-                    placeholder={t.enterPricePerLiter || 'Entrez le prix par litre'}
-                    keyboardType="decimal-pad"
-                    placeholderTextColor={Colors.textLight}
-                  />
-                  {validationErrors.pricePerLiter && (
-                    <Ionicons name="alert-circle" size={20} color="#FF6B6B" style={styles.errorIcon} />
-                  )}
+                <View style={styles.inputLabelContainer}>
+                  <Ionicons name="pricetag-outline" size={16} color={Colors.primary} />
+                  <Text style={styles.enhancedInputLabel}>
+                    {t.pricePerLiter || 'Prix par litre'} (DT)
+                  </Text>
                 </View>
-                {validationErrors.pricePerLiter && (
-                  <Text style={styles.errorText}>Veuillez entrer un prix valide</Text>
-                )}
+                <LinearGradient
+                  colors={[Colors.primary + '10', Colors.accent + '05']}
+                  style={styles.calculatedCostContainer}
+                >
+                  <Text style={styles.enhancedCalculatedText}>
+                    {formData.pricePerLiter ? `${parseFloat(formData.pricePerLiter).toFixed(3)} DT/L` : 'Sélectionnez un type de carburant'}
+                  </Text>
+                  <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />
+                </LinearGradient>
+                <Text style={[styles.errorText, { color: Colors.textSecondary, fontStyle: 'italic' }]}>
+                  Prix automatiquement défini selon le type de carburant
+                </Text>
               </View>
 
               {/* Coût total */}
               <View style={styles.inputGroup}>
-                <Text style={styles.enhancedInputLabel}>
-                  <Ionicons name="calculator-outline" size={16} color={Colors.primary} /> 
-                  {t.totalCost || 'Coût total'} (DT) *
-                </Text>
+                <View style={styles.inputLabelContainer}>
+                  <Ionicons name="calculator-outline" size={16} color={Colors.primary} />
+                  <Text style={styles.enhancedInputLabel}>
+                    {t.totalCost || 'Coût total'} (DT) *
+                  </Text>
+                </View>
                 <View style={[styles.enhancedInputContainer, validationErrors.totalCost && styles.errorInput]}>
                   <TextInput
                     style={styles.enhancedInput}
@@ -869,10 +1167,12 @@ export default function FuelTracking() {
 
               {/* Quantité de carburant (Calculée) */}
               <View style={styles.inputGroup}>
-                <Text style={styles.enhancedInputLabel}>
-                  <Ionicons name="water-outline" size={16} color={Colors.accent} /> 
-                  {t.fuelQuantity || 'Quantité de carburant'} (L)
-                </Text>
+                <View style={styles.inputLabelContainer}>
+                  <Ionicons name="water-outline" size={16} color={Colors.accent} />
+                  <Text style={styles.enhancedInputLabel}>
+                    {t.fuelQuantity || 'Quantité de carburant'} (L)
+                  </Text>
+                </View>
                 <LinearGradient
                   colors={[Colors.accent + '10', Colors.primary + '05']}
                   style={styles.calculatedCostContainer}
@@ -889,10 +1189,12 @@ export default function FuelTracking() {
 
               {/* Station service */}
               <View style={styles.inputGroup}>
-                <Text style={styles.enhancedInputLabel}>
-                  <Ionicons name="business-outline" size={16} color={Colors.primary} /> 
-                  {t.fuelStation || 'Station service'}
-                </Text>
+                <View style={styles.inputLabelContainer}>
+                  <Ionicons name="business-outline" size={16} color={Colors.primary} />
+                  <Text style={styles.enhancedInputLabel}>
+                    {t.fuelStation || 'Station service'}
+                  </Text>
+                </View>
                 <View style={styles.enhancedPickerContainer}>
                   <Picker
                     selectedValue={formData.fuelStation}
@@ -909,10 +1211,12 @@ export default function FuelTracking() {
 
               {/* Conditions de conduite */}
               <View style={styles.inputGroup}>
-                <Text style={styles.enhancedInputLabel}>
-                  <Ionicons name="car-outline" size={16} color={Colors.primary} /> 
-                  {t.drivingConditions || 'Conditions de conduite'}
-                </Text>
+                <View style={styles.inputLabelContainer}>
+                  <Ionicons name="car-outline" size={16} color={Colors.primary} />
+                  <Text style={styles.enhancedInputLabel}>
+                    {t.drivingConditions || 'Conditions de conduite'}
+                  </Text>
+                </View>
                 <View style={styles.enhancedPickerContainer}>
                   <Picker
                     selectedValue={formData.drivingConditions}
@@ -988,10 +1292,10 @@ export default function FuelTracking() {
                   <Ionicons name="checkmark-circle" size={32} color="#FFFFFF" />
                 </LinearGradient>
               </View>
-              
+
               <Text style={styles.confirmTitle}>Confirmer l'ajout</Text>
               <Text style={styles.confirmMessage}>
-                Voulez-vous vraiment ajouter ce plein de {calculateFuelQuantity().toFixed(2)}L à {parseFloat(formData.totalCost || '0').toFixed(2)} DT ?
+                Voulez-vous vraiment ajouter ce plein de {calculateFuelQuantity().toFixed(2)}L pour un coût total de {parseFloat(formData.totalCost || '0').toFixed(2)} DT ?
               </Text>
               
               <View style={styles.confirmButtonContainer}>
@@ -1017,6 +1321,7 @@ export default function FuelTracking() {
               </View>
             </LinearGradient>
           </Modal>
+
         </Portal>
       </View>
     </PaperProvider>
@@ -1771,13 +2076,16 @@ const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: Spacing.lg,
   },
+  inputLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
   enhancedInputLabel: {
     fontSize: Typography.fontSize.base,
     color: Colors.text,
-    marginBottom: Spacing.sm,
     fontWeight: '600',
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginLeft: Spacing.xs,
   },
   enhancedInputContainer: {
     flexDirection: 'row',
@@ -2025,5 +2333,209 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
     color: '#FFFFFF',
     fontWeight: '700',
+  },
+
+  // New styles for enhanced features
+  statsControlsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.xs,
+  },
+  filterChipsContainer: {
+    flexDirection: 'row',
+    flex: 1,
+  },
+  filterChip: {
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.textLight,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    marginRight: Spacing.xs,
+  },
+  activeFilterChip: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  filterChipText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text,
+    fontWeight: '500',
+  },
+  activeFilterChipText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  statsSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    fontWeight: '400',
+  },
+  comparisonIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  quickInsightsContainer: {
+    marginTop: Spacing.md,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
+  },
+  quickInsightsGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  insightItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  insightLabel: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.textSecondary,
+    marginLeft: Spacing.xs,
+    marginRight: Spacing.xs,
+  },
+  insightValue: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: '700',
+    color: Colors.text,
+  },
+  insightDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: Colors.textLight,
+    marginHorizontal: Spacing.sm,
+  },
+  historyControlsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  searchContainer: {
+    flex: 1,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.textLight,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text,
+    marginLeft: Spacing.xs,
+    paddingVertical: Spacing.xs,
+  },
+  sortButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.primary + '50',
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+  },
+  sortButtonText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.primary,
+    marginLeft: Spacing.xs,
+    fontWeight: '600',
+  },
+  noResultsContainer: {
+    paddingVertical: Spacing.xl,
+  },
+  noResultsGradient: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+  },
+  noResultsText: {
+    fontSize: Typography.fontSize.lg,
+    color: Colors.text,
+    fontWeight: '600',
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  noResultsSubtext: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: Spacing.lg,
+  },
+  clearFiltersButton: {
+    backgroundColor: Colors.primary + '20',
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  clearFiltersText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  primaryMetricsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  secondaryMetricsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  detailChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.textLight,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  detailChipText: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.textSecondary,
+    marginLeft: Spacing.xs,
+    fontWeight: '500',
+  },
+  priceInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+  },
+  priceInfoText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  efficiencyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+  },
+  efficiencyText: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: '600',
+    marginLeft: Spacing.xs,
   },
 });

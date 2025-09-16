@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 interface AuthUser {
   id: string;
@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           };
           
           // Try to get user profile from the auth service
-          fetch('http://192.168.100.14:8888/api/auth/me', { headers })
+          fetch('http://162.19.66.250:6892/api/auth/me', { headers })
             .then(response => response.json())
             .then(userData => {
               if (userData && userData.email) {

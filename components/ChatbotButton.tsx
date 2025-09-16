@@ -1,20 +1,19 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Modal,
-  ScrollView,
-  TextInput,
-  StyleSheet,
-  Dimensions,
-  Animated,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/Theme';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+    Animated,
+    Dimensions,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from '../constants/Theme';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const { width, height } = Dimensions.get('window');
@@ -30,7 +29,7 @@ interface ChatbotButtonProps {
   style?: object;
 }
 
-const CHATBOT_API_URL = 'http://192.168.100.14:8000'; // Backend URL - adjust as needed
+const CHATBOT_API_URL = 'http://162.19.66.250:6892:8000'; // Backend URL - adjust as needed
 
 export const ChatbotButton: React.FC<ChatbotButtonProps> = ({ style }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
